@@ -1,0 +1,16 @@
+{
+    "license": "GPL-2.0",
+    "name": "lajosbencz/pshd",
+    "description": "PHP Shorthand Database",
+    "minimum-stability": "stable",
+    "authors": [
+        {
+            "name": "Lajos Bencz",
+            "email": "lazos@lazos.me",
+            "homepage": "lazos.me"
+        }
+    ],
+    "require": {
+
+    }
+}
