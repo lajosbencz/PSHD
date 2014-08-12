@@ -2,8 +2,6 @@
 
 namespace Lajosbencz\Pshd;
 
-class Connector {
-
-
+class PshdQuery {
 
 }
