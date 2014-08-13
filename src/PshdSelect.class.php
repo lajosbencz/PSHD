@@ -49,6 +49,11 @@ class PshdSelect extends PshdQuery {
         return $this;
     }
 
+    public function whereId($id) {
+        $this->where(array('Id'=>$id));
+        return $this;
+    }
+
     public function groupBy($column=null) {
         if(!$column) $this->_groupBy = null;
         else $this->_groupBy[] = trim($column);
