@@ -26,7 +26,7 @@ class PshdQuery {
         }
         unset($q);
         $a = func_get_args();
-        array_unshift($a,$q);
+        $q = array_shift($a);
         if(count($a)>0) $q = vsprintf($q,$a);
         $this->_query = $q;
         return $this;
@@ -42,13 +42,28 @@ class PshdQuery {
     }
 
     public function run($params=null) {
-        Pshd::Dump(get_class($this));
         if($this->_run) return $this;
-        if(!$this->_pdoStmnt) $this->_pdoStmnt = $this->getConnector()->getPDO()->query($this->_query);
+        if(!$this->_pdoStmnt) {
+            try {
+                $this->_pdoStmnt = $this->getConnector()->getPDO()->query($this->_query);
+            }
+            catch(\PDOException $e) {
+                print "<pre>".$e->getMessage()."\r\n";
+                print $this->_query;
+                exit;
+            }
+        }
         if(is_array($params)) $this->setValues($params);
         foreach($this->_values as $k=>$v) $this->_pdoStmnt->bindValue($k,$v);
-        $this->_pdoStmnt->execute();
-        $this->_run = true;
+        try {
+            $this->_pdoStmnt->execute();
+            $this->_run = true;
+        }
+        catch(\PDOException $e) {
+            print "<pre>".$e->getMessage();
+            print $this->_query;
+            exit;
+        }
         return $this;
     }
 
@@ -59,27 +74,28 @@ class PshdQuery {
 
     public function cell() {
         $this->run();
-        return null;
+        $this->_pdoStmnt->setFetchMode(\PDO::FETCH_NUM);
+        return $this->_pdoStmnt->fetch()[0];
     }
 
     public function row() {
         $this->run();
-        return null;
+        $this->_pdoStmnt->setFetchMode(\PDO::FETCH_NUM);
+        return $this->_pdoStmnt->fetch();
     }
 
     public function assoc() {
         $this->run();
-        return null;
+        $this->_pdoStmnt->setFetchMode(\PDO::FETCH_ASSOC);
+        return $this->_pdoStmnt->fetch();
     }
 
-    public function vrow() {
+    public function column() {
         $this->run();
-        return null;
-    }
-
-    public function vassoc() {
-        $this->run();
-        return null;
+        $r = array();
+        $this->_pdoStmnt->setFetchMode(\PDO::FETCH_NUM);
+        foreach($this->_pdoStmnt->fetchAll() as $s) $r[] = $s[0];
+        return $r;
     }
 
     public function grid() {
@@ -92,10 +108,6 @@ class PshdQuery {
         $this->run();
         $this->_pdoStmnt->setFetchMode(\PDO::FETCH_ASSOC);
         return $this->_pdoStmnt->fetchAll();
-    }
-
-    public function next() {
-        return null;
     }
 
     public function close() {

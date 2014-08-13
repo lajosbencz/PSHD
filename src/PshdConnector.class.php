@@ -55,7 +55,10 @@ class PshdConnector {
     }
 
     public function query($strQuery) {
-        return (new PshdQuery($this))->setQuery($strQuery);
+        $a = func_get_args();
+        $q = array_shift($a);
+        if(count($a)>0) $q = vsprintf($q,$a);
+        return (new PshdQuery($this))->setQuery($q);
     }
 
     public function exec($strQuery) {

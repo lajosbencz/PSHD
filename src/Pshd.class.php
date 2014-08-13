@@ -33,7 +33,7 @@ class Pshd {
     public static function Log($line) {
         $a = func_get_args();
         if(count($a)>0) {
-            array_unshift($a,$line);
+            $line = array_shift($a);
             if(count($a)>0) $line = vsprintf($line,$a);
             print "<pre>$line</pre>";
         }

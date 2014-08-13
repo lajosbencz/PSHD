@@ -20,7 +20,17 @@ $db = Pshd::Connect(array(
 
 <?php
 
+
+$q2 = $db->query("SELECT bar.id bar_id, bar.val bar_val, foo.id foo_id, foo.val foo_val FROM bar LEFT JOIN foo ON 1=1");
+var_dump($q2->table());
+
 $q1 = $db->select("*")->from('foo');
 
-var_dump($q1->table());
-var_dump($q1->grid());
+var_dump(array(
+    'cell' => $q1->runAgain()->cell(),
+    'row' => $q1->runAgain()->row(),
+    'assoc' => $q1->runAgain()->assoc(),
+    'column' => $q1->runAgain()->column(),
+    'table' => $q1->runAgain()->table(),
+    'grid' => $q1->runAgain()->grid()
+));

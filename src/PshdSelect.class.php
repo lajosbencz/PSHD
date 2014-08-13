@@ -90,8 +90,7 @@ class PshdSelect extends PshdQuery {
     }
 
     public function run($params=null) {
-        $this->setQuery("SELECT %s FROM %s",implode(','.$this->_columns),$this->_from);
-        Pshd::Dump(sprintf("SELECT %s FROM %s",implode(','.$this->_columns),$this->_from));
+        $this->setQuery("SELECT %s FROM %s",implode(',',$this->_columns),$this->_from);
         return parent::run($params);
     }
 
