@@ -25,7 +25,7 @@
     ],
     "autoload": {
         "psr-0": {
-            "Lajosbencz\\Pshd": "src"
+            "LajosBencz\\Pshd": "src"
         }
     }
 }
