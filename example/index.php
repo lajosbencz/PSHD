@@ -20,5 +20,11 @@ $db = Pshd::Connect(array(
 
 <?php
 
-$q1 = $db->select('*')->from('head')->whereId(1);
+$q1 = $db
+    ->select('*')
+    ->from('{P}head')
+    ->where("val","%d%","LIKE");
+
+$q1->table();
+
 

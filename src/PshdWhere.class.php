@@ -5,7 +5,7 @@ namespace LajosBencz\Pshd;
 
 class PshdWhere {
 
-    public function __construct($where) {
+    public function __construct($where, $value=null, $matchType='=') {
         Pshd::Dump($where,get_class($where));
     }
 

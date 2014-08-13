@@ -20,6 +20,9 @@ class PshdConnector {
 
     protected $_pdo = null;
     protected $_driver = null;
+    protected $_prefixPlace = "{P}";
+    protected $_prefixValue = "";
+    protected $_idColumn = "id";
 
     public function __construct($cfg) {
         $dn = strtoupper(substr($cfg['driver'],0,1)).substr($cfg['driver'],1);
@@ -43,6 +46,8 @@ class PshdConnector {
         } else {
             throw new \Exception("Invalid config!");
         }
+        if(isset($cfg['prefixPlace'])) $this->setPrefixPlace($cfg['prefixPlace']);
+        if(isset($cfg['prefixValue'])) $this->setPrefixValue($cfg['prefixValue']);
         $this->getDriver()->setAttributes();
     }
 
@@ -52,6 +57,34 @@ class PshdConnector {
 
     public function getDriver() {
         return $this->_driver;
+    }
+
+    public function setPrefixPlace($place="{P}") {
+        $this->_prefixPlace = $place;
+        return $this;
+    }
+    public function getPrefixPlace() {
+        return $this->_prefixPlace;
+    }
+
+    public function setPrefixValue($value="") {
+        $this->_prefixValue = $value;
+        return $this;
+    }
+    public function getPrefixValue() {
+        return $this->_prefixValue;
+    }
+
+    public function prefix($str) {
+        return str_replace($this->_prefixPlace,$this->_prefixValue,$str);
+    }
+
+    public function setIdColumn($idColumn="id") {
+        $this->_idColumn = $idColumn;
+        return $this;
+    }
+    public function getIdColumn() {
+        return $this->_idColumn;
     }
 
     public function query($strQuery) {
@@ -70,7 +103,7 @@ class PshdConnector {
     }
 
     public function select($column) {
-        return (new PshdSelect($this))->select($column);
+        return (new PshdSelect($this))->select(func_get_args());
     }
 
     public function update($table, array $data, $where, $mode=Pshd::ERROR) {

@@ -18,7 +18,9 @@ class PshdSelect extends PshdQuery {
     public function select($fields=null) {
         if(!$fields) $this->_columns = null;
         else {
-            foreach(func_get_args() as $a) {
+            $fga = func_get_args();
+            if(count($fga)==1 && is_array($fga[0])) $fga = $fga[0];
+            foreach($fga as $a) {
                 if(strpos($a,',')>-1) foreach(explode(',',$a) as $c) $this->_columns[] = trim($c);
                 else $this->_columns[] = trim($a);
             }
@@ -43,7 +45,15 @@ class PshdSelect extends PshdQuery {
         return $this;
     }
 
-    public function where($where=null) {
+    public function where($where=null, $value=null, $matchType='=') {
+        if(is_array($where)) {
+            if($value!==null) {
+
+            } else {
+
+            }
+        }
+        if(is_numeric($where) || is_string($where))
         if(!$where) $this->_where = null;
         else $this->_where[] = $where;
         return $this;
