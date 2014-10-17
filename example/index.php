@@ -24,4 +24,6 @@ function preprint($format) {
 require_once dirname(__DIR__).'/vendor/autoload.php';
 
 $pshd = new \PSHD\PSHD("mysql:host=127.0.0.1;dbname=pshd","pshd","pshd");
-predump($pshd->getIdField());
+
+predump($pshd->select()->from('row')->table());
+
