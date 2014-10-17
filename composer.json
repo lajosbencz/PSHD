@@ -1,0 +1,25 @@
+{
+    "name": "lajosbencz/pshd",
+    "description": "Php Short Hand Database",
+    "require": {
+        "php": ">=5.3.2"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Lajos Bencz",
+            "email": "lazos@lazos.me"
+        }
+    ],
+    "minimum-stability": "dev",
+    "autoload": {
+        "classmap": [
+            "src/Exception.php",
+            "src/Literal.php",
+            "src/PSHD.php",
+            "src/Result.php",
+            "src/Select.php",
+            "src/Where.php"
+        ]
+    }
+}
