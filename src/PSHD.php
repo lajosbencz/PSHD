@@ -21,8 +21,10 @@ class PSHD {
     protected $_isMS = false;
     /**
      * @return bool
+     * @param bool $isMs
      */
-    public function isMS() {
+    public function isMS($isMs=null) {
+        if(is_bool($isMs)) $this->_isMS = $isMs;
         return $this->_isMS;
     }
 

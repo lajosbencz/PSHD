@@ -8,6 +8,7 @@ class Select extends Result {
     protected $_fields = array();
     protected $_from = array();
     protected $_where = array();
+    protected $_filter = array();
     protected $_groupBy = array();
     protected $_orderBy = array();
     protected $_limit = null;
@@ -19,29 +20,31 @@ class Select extends Result {
 
     protected $_join = array();
     protected $_sub = array();
-    protected $_subTables = array();
+    protected $_subQueries = array();
 
     protected function _preProcess() {
+        parent::_preProcess();
         $this->run();
     }
 
     protected function _buildQuery() {
-        $qSelect = "SELECT ";
-        $qFrom = " FROM ";
+        $qSelect = "";
+        $qFrom = $this->_from;
+        $qJoin = "";
         $qWhere = "";
         $qGroupBy = "";
         $qOrderBy = "";
         $qLimitOffset = "";
         if(count($this->_sub)>0) $this->select($this->_from.".".$this->_pshd->getIdField());
         if(!is_array($this->_fields) || count($this->_fields)<1) $this->_fields = array('*');
-        $join = "";
+        $qSelect.= implode(',',$this->_fields);
         foreach($this->_join as $jTable=>$jv) {
             $jMode = "LEFT";
             foreach($jv as $jm) {
                 $jMode = $jm;
                 break;
             }
-            $join.=sprintf(" %s JOIN %s ON %s.%s_%s=%s.%s ",
+            $qJoin.=sprintf(" %s JOIN %s ON %s.%s_%s=%s.%s ",
                 $jMode,
                 $jTable,
                 $this->_from, $jTable, $this->_pshd->getIdField(),
@@ -54,20 +57,37 @@ class Select extends Result {
                 $this->_fields[] = $f;
             }
         }
-        $this->_query = sprintf("SELECT %s FROM %s %s",implode(',',$this->_fields),$this->_from,$join);
-        $whr = "";
-        foreach($this->_where as $w) {
+        foreach(array_merge($this->_filter,$this->_where) as $w) {
             /* @var $w Where */
             $c = trim($w->getClause());
             if(strpos($c,$this->_pshd->getIdField()." ")===0 || strpos($c,$this->_pshd->getIdField()."=")===0) $c = $this->_from.'.'.$c;
             if(!preg_match("/^(AND|OR)/i",$c)) $c = "AND ( ".$c." )";
-            $whr.= " ".$c." ";
+            $qWhere.= " ".$c." ";
             $this->addParameter($w->getParameters());
         }
-        $whr = trim($whr);
-        if(strlen($whr)>0) {
-            $whr = preg_replace("/^(AND|OR)/i",'',$whr);
-            $this->_query.=sprintf(" WHERE %s",$whr);
+        $qWhere = trim($qWhere);
+        if(strlen($qWhere)>0) {
+            $qWhere = preg_replace("/^\\s*(AND|OR)/i",'',$qWhere);
+            if(!preg_match("/^\\(?\\s*WHERE/",$qWhere)) $qWhere = "WHERE ".$qWhere;
+            $this->_query.= $qWhere;
+        }
+        if(count($this->_groupBy)>0) {
+            $qGroupBy = "GROUP BY";
+            foreach($this->_groupBy as $field=>$v) $qGroupBy.= " $field,";
+            $qGroupBy = substr($qGroupBy,0,-1);
+        }
+        if(count($this->_orderBy)>0) {
+            $qOrderBy = "ORDER BY";
+            foreach($this->_orderBy as $field=>$order) $qOrderBy.= "$field $order,";
+            $qOrderBy = substr($qOrderBy,0,-1);
+        }
+        if(is_numeric($this->_limit) || is_numeric($this->_offset)) {
+            $qLimitOffset = sprintf("LIMIT %d OFFSET %d",max(1,$this->_limit),max(0,$this->_offset));
+        }
+        if($this->_pshd->isMS()) {
+
+        } else {
+            $this->_query = trim(sprintf("SELECT %s FROM %s %s %s %s %s %s",trim($qSelect),trim($qFrom),trim($qJoin),trim($qWhere),trim($qGroupBy),trim($qOrderBy),trim($qLimitOffset)));
         }
         try {
             $stmnt = $this->_pshd->prepare($this->_query);
@@ -79,7 +99,13 @@ class Select extends Result {
         parent::__construct($this->_pshd, $stmnt);
     }
 
-    protected function _addJoinAndSub($field) {
+    protected function _addJoinAndSub($field,$alias=false) {
+        if(is_object($field)) {
+            if(get_class($field) == __NAMESPACE__."\\Select") {
+                $this->_subQueries[$alias] = $field;
+                return;
+            }
+        }
         $fc = $field[0];
         switch($fc) {
             case $this->_pshd->getLeftJoinChar():
@@ -125,9 +151,11 @@ class Select extends Result {
             $this->_sub = array();
         } else {
             $args = func_get_args();
-            foreach($args as $a) {
+            foreach($args as $k=>$a) {
+                predump($k,$a);
                 if(is_array($a)) $this->select($a);
-                elseif(strlen(trim($a))>0) $this->_addJoinAndSub($a);
+                elseif(is_object($a)) $this->_addJoinAndSub($a,$k);
+                elseif(is_string(strlen(trim($a))>0)) $this->_addJoinAndSub($a);
             }
         }
         return $this;
@@ -153,6 +181,14 @@ class Select extends Result {
             $this->_where = array();
         } else {
             $this->_where[] = $this->_pshd->where($where,$parameters);
+        }
+        return $this;
+    }
+    public function filter($name,$where,$parameters=array()) {
+        if($name===null) {
+            $this->_filter = array();
+        } else {
+            $this->_filter[$name] = $this->_pshd->where($where,$parameters);
         }
         return $this;
     }
@@ -254,6 +290,13 @@ class Select extends Result {
                 if(!is_array($sFields)) $sFields = array($sFields);
                 $q = sprintf("SELECT %s FROM %s WHERE %s_%s=?",implode(',',array_keys($sFields)),$sTable,$this->_from,$this->_pshd->getIdField());
                 $d[$dk][$sTable] = $this->_pshd->query($q,array($dv[$this->_pshd->getIdField()]))->table();
+            }
+            foreach($this->_subQueries as $name=>$select) {
+                /** @var $select Select */
+                $sel = clone $select;
+                $sel->where(sprintf(" AND %s_%s=?",$this->_from,$this->_pshd->getIdField()),array($dv[$this->_pshd->getIdField()]));
+                $select->run(true);
+                $d[$dk][$name] = $select->table();
             }
         }
         return $d;
