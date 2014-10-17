@@ -41,7 +41,13 @@ class Select extends Result {
                 $jMode = $jm;
                 break;
             }
-            $join.=sprintf(" %s JOIN %s ON %s.%s=%s.%s_%s ",$jMode,$jTable,$this->_from,$this->_pshd->getIdField(),$jTable,$this->_from,$this->_pshd->getIdField());
+            $join.=sprintf(" %s JOIN %s ON %s.%s_%s=%s.%s ",
+                $jMode,
+                $jTable,
+                $this->_from, $jTable, $this->_pshd->getIdField(),
+                $jTable, $this->_pshd->getIdField()
+
+            );
             foreach($jv as $jField => $v) {
                 $f = $jTable.'.'.$jField;
                 if($jField!='*') $f.=' '.$jTable.'_'.$jField;
