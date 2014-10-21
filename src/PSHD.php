@@ -75,6 +75,26 @@ class PSHD {
         return $this->_idField;
     }
 
+	/**
+	 * @var string
+	 */
+	protected $_idPaging = '_PSHD_PAGING_ID__HIDDEN';
+
+	/**
+	 * @param string $name
+	 * @return $this
+	 */
+	public function setIdPaging($name='_PSHD_PAGING_ID__HIDDEN') {
+		$this->_idPaging = $name;
+		return $this;
+	}
+	/**
+	 * @return string
+	 */
+	public function getIdPaging() {
+		return $this->_idPaging;
+	}
+
     /**
      * @var string
      */
@@ -222,31 +242,41 @@ class PSHD {
      */
     public function __construct($dsn,$user=null,$password=null,$charset='utf8') {
         $this->setErrorHandler(array($this,'_errorHandler'));
+		$dbName = false;
         if(is_array($dsn)) {
-            $this->_idField = (isset($dsn['idField'])?$dsn['idField']:$this->_idField);
-            $this->_tablePrefix = (isset($dsn['tablePrefix'])?$dsn['tablePrefix']:$this->_tablePrefix);
-            $this->_tablePrefixPlace = (isset($dsn['tablePrefixPlace'])?$dsn['tablePrefixPlace']:$this->_tablePrefixPlace);
-            $this->_leftJoinChar = (isset($dsn['leftJoinChar'])?$dsn['leftJoinChar']:$this->_leftJoinChar);
-            $this->_innerJoinChar = (isset($dsn['innerJoinChar'])?$dsn['innerJoinChar']:$this->_innerJoinChar);
-            $this->_rightJoinChar = (isset($dsn['rightJoinChar'])?$dsn['rightJoinChar']:$this->_rightJoinChar);
-            $this->_subSelectChar = (isset($dsn['subSelectChar'])?$dsn['subSelectChar']:$this->_subSelectChar);
+			$dbName =(isset($dsn['database'])?$dsn['database']:false);
+            $this->_idField = (isset($dsn['idField'])?:$this->_idField);
+			$this->_idPaging = (isset($dsn['idPaging'])?:$this->_idPaging);
+            $this->_tablePrefix = (isset($dsn['tablePrefix'])?:$this->_tablePrefix);
+            $this->_tablePrefixPlace = (isset($dsn['tablePrefixPlace'])?:$this->_tablePrefixPlace);
+            $this->_leftJoinChar = (isset($dsn['leftJoinChar'])?:$this->_leftJoinChar);
+            $this->_innerJoinChar = (isset($dsn['innerJoinChar'])?:$this->_innerJoinChar);
+            $this->_rightJoinChar = (isset($dsn['rightJoinChar'])?:$this->_rightJoinChar);
+            $this->_subSelectChar = (isset($dsn['subSelectChar'])?:$this->_subSelectChar);
             $this->_defaultLimit = (isset($dsn['defaultLimit'])?intval($dsn['defaultLimit']):$this->_defaultLimit);
             if(isset($dsn['charset'])) $charset = $dsn['charset'];
             $password = $dsn['password'];
             $user = $dsn['user'];
             $dsn = $dsn['dsn'];
         }
-        if(preg_match("/^(sqlsrv|sybase|dblib)/",$dsn)) $this->_isMS = true;
+        if(preg_match("/^(sqlsrv|sybase|dblib|odbc)/",$dsn)) $this->_isMS = true;
+		if(strpos($dsn,'dblib')===0) {
+			// attributes not supported
+			$attr = array();
+		} else {
+			$attr = array(
+				\PDO::ATTR_PERSISTENT => true,
+				\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+				\PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+			);
+		}
+		if(!$this->isMS()) $attr[\PDO::MYSQL_ATTR_INIT_COMMAND] = "SET NAMES ".$charset;
         try {
-            $attr = array(
-                \PDO::ATTR_PERSISTENT => true,
-                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-            );
-            if(!$this->isMS()) $attr[\PDO::MYSQL_ATTR_INIT_COMMAND] = "SET NAMES ".$charset;
             $this->_pdo = new \PDO($dsn,$user,$password,$attr);
         } catch(\PDOException $pe) {
             $this->triggerError(null,null,$pe);
         }
+		if(strlen($dbName)>0) $this->execute("USE ".$dbName);
     }
 
 

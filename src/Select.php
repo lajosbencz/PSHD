@@ -14,15 +14,16 @@ class Select extends Result {
     protected $_limit = null;
     protected $_offset = null;
 
+	protected $_join = array();
+	protected $_sub = array();
+	protected $_subQueries = array();
+
     protected $_query = null;
     protected $_parameters = array();
-    protected $_run = false;
+	protected $_run = false;
 
-    protected $_join = array();
-    protected $_sub = array();
-    protected $_subQueries = array();
 
-    protected function _preProcess() {
+	protected function _preProcess() {
         parent::_preProcess();
         $this->run();
     }
@@ -78,25 +79,29 @@ class Select extends Result {
         }
         if(count($this->_orderBy)>0) {
             $qOrderBy = "ORDER BY";
-            foreach($this->_orderBy as $field=>$order) $qOrderBy.= "$field $order,";
+            foreach($this->_orderBy as $field=>$order) $qOrderBy.= " $field $order,";
             $qOrderBy = substr($qOrderBy,0,-1);
         }
         if(is_numeric($this->_limit) || is_numeric($this->_offset)) {
             $qLimitOffset = sprintf("LIMIT %d OFFSET %d",max(1,$this->_limit),max(0,$this->_offset));
         }
-        if($this->_pshd->isMS()) {
-
+		foreach(array($qSelect,$qFrom,$qJoin,$qWhere,$qGroupBy,$qOrderBy,$qLimitOffset) as &$q) $q = trim($q);
+		$this->_removePagingEnable = false;
+        if($this->_pshd->isMS() && strlen($qLimitOffset)>0) {
+			// Wrap query with paging for MSSQL
+			$query = trim(sprintf("%s FROM %s %s %s %s %s",$qSelect,$qFrom,$qJoin,$qWhere,$qGroupBy,$qOrderBy));
+			if($this->_offset>0) {
+				$this->_removePagingEnable = true;
+				//if(strlen($qOrderBy)<1) $qOrderBy = '1';
+				$query = sprintf("SELECT * FROM ( SELECT TOP %d ROW_NUMBER() OVER(%s) AS %s, %s ) AS _TABLE_%s WHERE %s BETWEEN %d AND %d %s",
+					$this->_offset+$this->_limit, $qOrderBy, $this->_pshd->getIdPaging(), $query, $this->_pshd->getIdPaging(), $this->_pshd->getIdPaging(), $this->_offset+1, $this->_offset+$this->_limit+1, $qOrderBy);
+			} else {
+				$query = trim(sprintf("SELECT TOP %d %s FROM %s %s %s %s %s",$this->_limit, $qSelect, $qFrom, $qJoin, $qWhere, $qGroupBy, $qOrderBy));
+			}
         } else {
-            $this->_query = trim(sprintf("SELECT %s FROM %s %s %s %s %s %s",trim($qSelect),trim($qFrom),trim($qJoin),trim($qWhere),trim($qGroupBy),trim($qOrderBy),trim($qLimitOffset)));
-        }
-        try {
-            $stmnt = $this->_pshd->prepare($this->_query);
-            $stmnt->execute($this->_parameters);
-        } catch(\Exception $e) {
-            $this->_pshd->triggerError($this->_query,$this->_parameters,$e);
-            return;
-        }
-        parent::__construct($this->_pshd, $stmnt);
+			$query = trim(sprintf("SELECT %s FROM %s %s %s %s %s %s", $qSelect, $qFrom, $qJoin, $qWhere, $qGroupBy, $qOrderBy, $qLimitOffset));
+		}
+		$this->_query = $query;
     }
 
     protected function _addJoinAndSub($field,$alias=false) {
@@ -137,7 +142,7 @@ class Select extends Result {
      * @param PSHD $pshd
      */
     public function __construct($pshd) {
-        $this->_pshd = $pshd;
+		parent::__construct($pshd);
     }
 
     /**
@@ -146,16 +151,15 @@ class Select extends Result {
      */
     public function select($fields='*') {
         if($fields===null) {
-            $this->_from = array();
-            $this->_join = array();
+            $this->_fields = array();
+            //$this->_join = array();
             $this->_sub = array();
         } else {
             $args = func_get_args();
             foreach($args as $k=>$a) {
-                predump($k,$a);
-                if(is_array($a)) $this->select($a);
+                if(is_array($a)) foreach($a as $av) $this->select($av);
                 elseif(is_object($a)) $this->_addJoinAndSub($a,$k);
-                elseif(is_string(strlen(trim($a))>0)) $this->_addJoinAndSub($a);
+                elseif(is_string($a) && strlen(trim($a))>0) $this->_addJoinAndSub($a);
             }
         }
         return $this;
@@ -165,12 +169,14 @@ class Select extends Result {
         return $this;
     }
     public function join($table,$fields=array('*'),$mode="") {
+		if($table===null) $this->_join = array();
         if(!is_array($fields)) $fields = array($fields);
         if(!is_array($this->_join)) $this->_join = array();
         if(empty($this->_join[$table]) || !is_array($this->_join[$table])) $this->_join[$table] = array();
         foreach($fields as $f) $this->_join[$table][$f] = $mode;
     }
     public function sub($table,$fields=array('*')) {
+		if($table===null) $this->_sub = array();
         if(!is_array($fields)) $fields = array($fields);
         if(!is_array($this->_sub)) $this->_sub = array();
         if(empty($this->_sub[$table]) || !is_array($this->_sub[$table])) $this->_sub[$table] = array();
@@ -193,32 +199,40 @@ class Select extends Result {
         return $this;
     }
     public function groupBy($field) {
-        $this->_groupBy[$field] = 1;
+		if($field===null) {
+			$this->_groupBy = array();
+		} else {
+			$this->_groupBy[$field] = 1;
+		}
         return $this;
     }
     public function orderBy($field,$order="ASC") {
-        $field = trim($field);
-        $e = explode(" ",$field);
-        if(count($e)>1) {
-            $field = $e[0];
-            $e[1] = strtoupper($e[1]);
-            switch($e[1]) {
-                default:
-                case 1:
-                case 'ASC':
-                case '+':
-                case '<':
-                    $order = "ASC";
-                    break;
-                case 0:
-                case 'DESC':
-                case '-':
-                case '>':
-                    $order = "DESC";
-                    break;
-            }
-        }
-        $this->_orderBy[$field] = $order;
+		if($field===null) {
+			$this->_orderBy = array();
+		} else {
+			$field = trim($field);
+			$e = explode(" ",$field);
+			if(count($e)>1) {
+				$field = $e[0];
+				$e[1] = strtoupper($e[1]);
+				switch($e[1]) {
+					default:
+					case 1:
+					case 'ASC':
+					case '+':
+					case '<':
+						$order = "ASC";
+						break;
+					case 0:
+					case 'DESC':
+					case '-':
+					case '>':
+						$order = "DESC";
+						break;
+				}
+			}
+			$this->_orderBy[$field] = $order;
+		}
         return $this;
     }
     public function limit($limit,$offset=false) {
@@ -255,35 +269,53 @@ class Select extends Result {
 
     public function reset() {
         $this->_run = false;
-        $this->_pdoStmnt->closeCursor();
+		//if($this->_pdoStmnt) $this->_pdoStmnt->closeCursor();
+		return $this;
     }
+
+	public function build() {
+		$this->_buildQuery();
+		return $this;
+	}
 
     public function run($force=false) {
         if(!$this->_run || $force) {
-            $this->_buildQuery();
-
+			if(strlen(trim($this->_query))<1) $this->build();
+			try {
+				$stmnt = null;
+				$stmnt = $this->_pshd->prepare($this->_query);
+				$stmnt->execute($this->_parameters);
+			} catch(\Exception $e) {
+				$this->_pshd->triggerError($this->_query,$this->_parameters,$e);
+				return $this;
+			}
+			parent::init($stmnt, $this->_removePagingEnable);
         }
         $this->_run = true;
         return $this;
     }
 
     public function cell($idx=0) {
-        $this->limit(1);
+        $this->limit(1,0);
+		$this->_preProcess();
         return parent::cell($idx);
     }
 
     public function row() {
-        $this->limit(1);
+        $this->limit(1,0);
+		$this->_preProcess();
         return parent::row();
     }
 
     public function assoc() {
-        $this->limit(1);
+        $this->limit(1,0);
+		$this->_preProcess();
         $d = parent::assoc();
         return $d;
     }
 
     public function table($assoc=true) {
+		$this->_preProcess();
         $d = parent::table($assoc);
         foreach($d as $dk=>$dv) {
             foreach($this->_sub as $sTable=>$sFields) {
@@ -301,6 +333,12 @@ class Select extends Result {
         }
         return $d;
     }
+
+	public function count($removeLimitOffset=false) {
+		$c = clone $this;
+		if($removeLimitOffset) $c->limit(null,null);
+		return count($c->column());
+	}
 
     protected function _buildSub(&$data) {
 
