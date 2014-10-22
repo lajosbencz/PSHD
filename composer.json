@@ -1,31 +1,25 @@
 {
     "name": "lajosbencz/pshd",
-    "type": "library",
-    "keywords": ["database","shorthand","wrapper"],
-    "license": "GPL-2.0",
-    "description": "PHP Shorthand Database",
-    "homepage": "http://github.com/lajosbencz/pshd",
-    "minimum-stability": "stable",
+    "description": "Php Short Hand Database",
+    "require": {
+        "php": ">=5.3.2"
+    },
+    "license": "MIT",
     "authors": [
         {
             "name": "Lajos Bencz",
-            "email": "lajos.bencz@gmail.com",
-            "homepage": "http://lazos.me",
-            "role": "developer"
+            "email": "lazos@lazos.me"
         }
     ],
-    "require": {
-        "php": ">=5.3.0"
-    },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/lajosbencz/pshd"
-        }
-    ],
+    "minimum-stability": "dev",
     "autoload": {
-        "psr-0": {
-            "LajosBencz\\Pshd": "src"
-        }
+        "classmap": [
+            "src/Exception.php",
+            "src/Literal.php",
+            "src/PSHD.php",
+            "src/Result.php",
+            "src/Select.php",
+            "src/Where.php"
+        ]
     }
 }
