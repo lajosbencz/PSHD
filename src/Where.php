@@ -32,8 +32,7 @@ class Where {
             $where = "";
             $parameters = array();
             foreach($clause as $k=>$v) {
-                if($this->_pshd->isMS()) $where.=" AND $k=CAST(? AS VARCHAR(".strlen($v)."))";
-                else $where.=" AND $k=?";
+				$where.=" AND $k=?";
                 $parameters[]=$v;
             }
             $clause = substr($where,4);

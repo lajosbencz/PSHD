@@ -21,18 +21,6 @@ class Result {
 		if($this->_pdoStmnt) $this->_pdoStmnt->closeCursor();
 	}
 
-	protected function _removePagingColumn(&$row,$assoc=true) {
-		if(!is_array($row) || $this->_pshd->isMS() && !$this->_removePagingEnable) return;
-		if($assoc) {
-			if(array_key_exists($this->_pshd->getIdPaging(), $row)) {
-				$row[$this->_pshd->getIdPaging()] = null;
-				unset($row[$this->_pshd->getIdPaging()]);
-			}
-		} else {
-			array_shift($row);
-		}
-	}
-
     /**
      * @param PSHD $pshd
      * @param \PDOStatement|bool $pdoStmnt
@@ -80,7 +68,6 @@ class Result {
     public function row() {
 		$this->_preProcess();
 		$r = $this->_pdoStmnt->fetch(\PDO::FETCH_NUM);
-		$this->_removePagingColumn($r,false);
 		$this->_postProcess();
         return $r;
     }
@@ -91,7 +78,6 @@ class Result {
     public function assoc() {
 		$this->_preProcess();
 		$r = $this->_pdoStmnt->fetch(\PDO::FETCH_ASSOC);
-		$this->_removePagingColumn($r);
 		$this->_postProcess();
         return $r;
     }
@@ -122,7 +108,6 @@ class Result {
     public function table($assoc=true) {
 		$this->_preProcess();
 		$r = $this->_pdoStmnt->fetchAll($assoc?\PDO::FETCH_ASSOC:\PDO::FETCH_NUM);
-		foreach($r as &$rv) $this->_removePagingColumn($rv);
 		$this->_rowCount = count($r);
 		$this->_postProcess();
         return $r;

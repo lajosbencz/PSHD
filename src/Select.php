@@ -87,20 +87,7 @@ class Select extends Result {
         }
 		foreach(array($qSelect,$qFrom,$qJoin,$qWhere,$qGroupBy,$qOrderBy,$qLimitOffset) as &$q) $q = trim($q);
 		$this->_removePagingEnable = false;
-        if($this->_pshd->isMS() && strlen($qLimitOffset)>0) {
-			// Wrap query with paging for MSSQL
-			$query = trim(sprintf("%s FROM %s %s %s %s %s",$qSelect,$qFrom,$qJoin,$qWhere,$qGroupBy,$qOrderBy));
-			if($this->_offset>0) {
-				$this->_removePagingEnable = true;
-				//if(strlen($qOrderBy)<1) $qOrderBy = '1';
-				$query = sprintf("SELECT * FROM ( SELECT TOP %d ROW_NUMBER() OVER(%s) AS %s, %s ) AS _TABLE_%s WHERE %s BETWEEN %d AND %d %s",
-					$this->_offset+$this->_limit, $qOrderBy, $this->_pshd->getIdPaging(), $query, $this->_pshd->getIdPaging(), $this->_pshd->getIdPaging(), $this->_offset+1, $this->_offset+$this->_limit+1, $qOrderBy);
-			} else {
-				$query = trim(sprintf("SELECT TOP %d %s FROM %s %s %s %s %s",$this->_limit, $qSelect, $qFrom, $qJoin, $qWhere, $qGroupBy, $qOrderBy));
-			}
-        } else {
-			$query = trim(sprintf("SELECT %s FROM %s %s %s %s %s %s", $qSelect, $qFrom, $qJoin, $qWhere, $qGroupBy, $qOrderBy, $qLimitOffset));
-		}
+		$query = trim(sprintf("SELECT %s FROM %s %s %s %s %s %s", $qSelect, $qFrom, $qJoin, $qWhere, $qGroupBy, $qOrderBy, $qLimitOffset));
 		$this->_query = $query;
     }
 

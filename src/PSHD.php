@@ -9,25 +9,7 @@ class PSHD {
         'mysql',    // http://php.net/manual/en/ref.pdo-mysql.connection.php
         'pgsql',    // http://php.net/manual/en/ref.pdo-pgsql.connection.php
         'sqlite',   // http://php.net/manual/en/ref.pdo-sqlite.connection.php
-        /* wrap paging for these drivers */
-        'odbc',   // http://php.net/manual/en/ref.pdo-odbc.connection.php
-        'sqlsrv',   // http://php.net/manual/en/ref.pdo-sqlsrv.connection.php
-        'sybase',   // http://php.net/manual/en/ref.pdo-dblib.connection.php
-        'dblib',    // http://php.net/manual/en/ref.pdo-dblib.connection.php
     );
-
-    /**
-     * @var bool
-     */
-    protected $_isMS = false;
-    /**
-     * @return bool
-     * @param bool $isMs
-     */
-    public function isMS($isMs=null) {
-        if(is_bool($isMs)) $this->_isMS = $isMs;
-        return $this->_isMS;
-    }
 
     /**
      * @var string
@@ -273,18 +255,11 @@ class PSHD {
             $dsn = $dsn['dsn'];
         }
         $this->_driver = substr($dsn,0,strpos($dsn,':'));
-        if(in_array($this->getDriver(),array('odbc','sqlsrv','dblib','sybase'))) $this->_isMS = true;
-		if($this->getDriver() == 'dblib') {
-			// attributes not supported
-			$attr = array();
-		} else {
-			$attr = array(
-				\PDO::ATTR_PERSISTENT => true,
-				\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-				\PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-			);
-		}
-		if(!$this->isMS()) $attr[\PDO::MYSQL_ATTR_INIT_COMMAND] = "SET NAMES ".$charset;
+		$attr = array(
+			\PDO::ATTR_PERSISTENT => true,
+			\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+			\PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+		);
         try {
             $this->_pdo = new \PDO($dsn,$user,$password,$attr);
         } catch(\PDOException $pe) {
@@ -307,7 +282,7 @@ class PSHD {
             ob_start();
             var_dump($parameters);
             $prmString = ob_get_clean();
-            throw new \PSHD\Exception($query."<br />\r\n".$prmString,0,$exception);
+            throw new Exception($query."<br />\r\n".$prmString,0,$exception);
         }
         call_user_func($this->_errorHandler,$query,$parameters,$exception);
     }
@@ -432,16 +407,7 @@ class PSHD {
             $this->triggerError("",array(),new \Exception("Data array is empty"));
             return -1;
         }
-        $place = "";
-        foreach($data[0] as $v) {
-            if($this->isMS()) {
-                if(!is_numeric($v)) $place.=sprintf(",'%s'",$v);
-                else $place.=sprintf(",%s",$v);
-            } else {
-                $place.= ",?";
-            }
-        }
-        $place = ",(".substr($place,1).")";
+        $place = ",(".substr(str_repeat(",?",count($data)),1).")";
         $p = array();
         $q = " INSERT INTO ";
         $q.= $this->prefixTable($table);
@@ -456,10 +422,10 @@ class PSHD {
             foreach($head as $h) $dup.=",$h=VALUES($h) ";
             $q.= " ON DUPLICATE KEY UPDATE ".substr($dup,1);
         }
-        if(!$this->isMS()) foreach($data as $dv) foreach($dv as $v) $p[]= $v;
+        foreach($data as $dv) foreach($dv as $v) $p[]= $v;
         predump($q,$p);
         $this->execute($q,$p);
-        return $this->isMS()?false:intval($this->_pdo->lastInsertId());
+        return intval($this->_pdo->lastInsertId());
     }
 
     public function select($fields="*") {
