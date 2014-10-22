@@ -13,6 +13,7 @@ class Select extends Result {
     protected $_orderBy = array();
     protected $_limit = null;
     protected $_offset = null;
+	protected $_filterWhere = array();
 
 	protected $_join = array();
 	protected $_sub = array();
@@ -29,6 +30,7 @@ class Select extends Result {
     }
 
     protected function _buildQuery() {
+		$this->_parameters = array();
         $qSelect = "";
         $qFrom = $this->_from;
         $qJoin = "";
@@ -37,28 +39,42 @@ class Select extends Result {
         $qOrderBy = "";
         $qLimitOffset = "";
         if(count($this->_sub)>0) $this->select($this->_from.".".$this->_pshd->getIdField());
-        if(!is_array($this->_fields) || count($this->_fields)<1) $this->_fields = array('*');
-        $qSelect.= implode(',',$this->_fields);
+        if((!is_array($this->_fields) || count($this->_fields)<1) && count($this->_join)<1 && count($this->_sub)<1) $this->_fields = array('*');
         foreach($this->_join as $jTable=>$jv) {
             $jMode = "LEFT";
+			$jTableAlias = $jTable;
+			if(preg_match("/^([^\\s]+)(\\s+OR)?\\s+([^\\s]+)$/i",trim($jTable),$m)) {
+				$jTable = $m[1];
+				$jTableAlias = $m[3];
+			}
             foreach($jv as $jm) {
                 $jMode = $jm;
                 break;
             }
-            $qJoin.=sprintf(" %s JOIN %s ON %s.%s_%s=%s.%s ",
+            $qJoin.=sprintf(" %s JOIN %s AS %s ON %s.%s_%s=%s.%s ",
                 $jMode,
                 $jTable,
+				$jTableAlias,
                 $this->_from, $jTable, $this->_pshd->getIdField(),
-                $jTable, $this->_pshd->getIdField()
+				$jTableAlias, $this->_pshd->getIdField()
 
             );
-            foreach($jv as $jField => $v) {
-                $f = $jTable.'.'.$jField;
-                if($jField!='*') $f.=' '.$jTable.'_'.$jField;
-                $this->_fields[] = $f;
-            }
+			if(count($jv)==1 && isset($jv['*'])) {
+				$this->_fields[] = $jTableAlias.".*";
+			} else {
+				foreach($jv as $jField => $v) {
+					$f = $jTableAlias.'.'.$jField;
+					if($jField!='*') $f.=' '.$jTableAlias.'_'.$jField;
+					$this->_fields[] = $f;
+				}
+			}
         }
-        foreach(array_merge($this->_filter,$this->_where) as $w) {
+		$qSelect.= implode(',',$this->_fields);
+		$qSelect = preg_replace("/(^|\\,)\\./","\$1".$qFrom.".",$qSelect);
+		foreach($this->_filterWhere as $w) {
+			if(isset($w['where'])) $w = $w['where'];
+			elseif(isset($w['filter'])) $w = $w['filter'];
+			else $this->_pshd->triggerError("Invalid Where data!");
             /* @var $w Where */
             $c = trim($w->getClause());
             if(strpos($c,$this->_pshd->getIdField()." ")===0 || strpos($c,$this->_pshd->getIdField()."=")===0) $c = $this->_from.'.'.$c;
@@ -99,24 +115,28 @@ class Select extends Result {
             }
         }
         $fc = $field[0];
+		$invert = (strlen($field>1) && $fc === $field[1])?1:0;
         switch($fc) {
+			case $this->_pshd->getJoinChar():
             case $this->_pshd->getLeftJoinChar():
             case $this->_pshd->getInnerJoinChar():
             case $this->_pshd->getRightJoinChar():
-                $field = substr($field,1);
+                $field = substr($field,1+$invert);
                 $field = explode('.',$field);
-                $m = "LEFT";
-                if($fc==$this->_pshd->getInnerJoinChar()) $m='INNER';
+                $m = "";
+				if($fc==$this->_pshd->getJoinChar()) $m='';
+				elseif($fc==$this->_pshd->getLeftJoinChar()) $m='LEFT';
+                elseif($fc==$this->_pshd->getInnerJoinChar()) $m='INNER';
                 elseif($fc==$this->_pshd->getRightJoinChar()) $m='RIGHT';
-                if(count($field)>1) foreach(explode(',',$field[1]) as $f) $this->join($field[0],$f,$m);
-                else $this->join($field[0],array('*'),$m);
+                if(count($field)>1) $this->join($field[0],explode(',',$field[1]),$m,$invert);
+                else $this->join($field[0],array('*'),$m,$invert);
                 break;
 
             case $this->_pshd->getSubSelectChar():
-                $field = substr($field,1);
+                $field = substr($field,1+$invert);
                 $field = explode('.',$field);
-                if(count($field)>1) foreach(explode(',',$field[1]) as $f) $this->sub($field[0],$f);
-                else $this->sub($field[0],array('*'));
+                if(count($field)>1) foreach(explode(',',$field[1]) as $f) $this->sub($field[0],$f,$invert);
+                else $this->sub($field[0],array('*'),$invert);
                 break;
 
             default:
@@ -155,37 +175,56 @@ class Select extends Result {
         }
         return $this;
     }
-    public function from($table) {
-        $this->_from = $this->_pshd->prefixTable($table);
+    public function from($table,$prefix=true) {
+        $this->_from = $prefix?$this->_pshd->prefixTable($table):$table;
         return $this;
     }
-    public function join($table,$fields=array('*'),$mode="") {
-		if($table===null) $this->_join = array();
-        if(!is_array($fields)) $fields = array($fields);
-        if(!is_array($this->_join)) $this->_join = array();
-        if(empty($this->_join[$table]) || !is_array($this->_join[$table])) $this->_join[$table] = array();
-        foreach($fields as $f) $this->_join[$table][$f] = $mode;
+    public function join($table,$fields=array('*'),$mode="", $invert=false) {
+		if($table===null) {
+			$this->_join = array();
+		} else {
+			if(!is_array($fields)) $fields = array($fields);
+			if(!is_array($this->_join)) $this->_join = array();
+			if(empty($this->_join[$table]) || !is_array($this->_join[$table])) $this->_join[$table] = array();
+			foreach($fields as $f) $this->_join[$table][$f] = $mode;
+		}
+		return $this;
     }
-    public function sub($table,$fields=array('*')) {
-		if($table===null) $this->_sub = array();
-        if(!is_array($fields)) $fields = array($fields);
-        if(!is_array($this->_sub)) $this->_sub = array();
-        if(empty($this->_sub[$table]) || !is_array($this->_sub[$table])) $this->_sub[$table] = array();
-        foreach($fields as $f) $this->_sub[$table][$f] = 1;
+    public function sub($table,$fields=array('*'), $invert=false) {
+		if($table===null) {
+			$this->_sub = array();
+		} else {
+			if(!is_array($fields)) $fields = array($fields);
+			if(!is_array($this->_sub)) $this->_sub = array();
+			if(empty($this->_sub[$table]) || !is_array($this->_sub[$table])) $this->_sub[$table] = array();
+			foreach($fields as $f) $this->_sub[$table][$f] = 1;
+		}
+		return $this;
     }
     public function where($where,$parameters=array()) {
         if($where===null) {
-            $this->_where = array();
+			foreach($this->_filterWhere as $k=>$v) if(isset($v['where'])) {
+				$this->_filterWhere[$k] = null;
+				unset($this->_filterWhere[$k]);
+			}
         } else {
-            $this->_where[] = $this->_pshd->where($where,$parameters);
+			$this->_filterWhere[] = array('where' => $this->_pshd->where($where,$parameters));
         }
         return $this;
     }
-    public function filter($name,$where,$parameters=array()) {
+    public function filter($name,$where=null,$parameters=array()) {
         if($name===null) {
-            $this->_filter = array();
+			foreach($this->_filterWhere as $k=>$v) if(isset($v['filter'])) {
+				$this->_filterWhere[$k] = null;
+				unset($this->_filterWhere[$k]);
+			}
         } else {
-            $this->_filter[$name] = $this->_pshd->where($where,$parameters);
+			if($where==null) {
+				$this->_filterWhere[$name] = null;
+				unset($this->_filterWhere[$name]);
+			} else {
+				$this->_filterWhere[$name] = array('filter' => $this->_pshd->where($where,$parameters));
+			}
         }
         return $this;
     }
@@ -237,6 +276,11 @@ class Select extends Result {
         return $this;
     }
 
+	public function page($page=1,$size=25) {
+		$this->limit($size,$size*($page-1));
+		return $this;
+	}
+
     public function setQuery($query) {
         $this->_query = $query;
         return $this;
@@ -260,11 +304,12 @@ class Select extends Result {
 
     public function reset() {
         $this->_run = false;
-		//if($this->_pdoStmnt) $this->_pdoStmnt->closeCursor();
+		if($this->_pdoStmnt) $this->_pdoStmnt->closeCursor();
 		return $this;
     }
 
 	public function build() {
+		$this->reset();
 		$this->_buildQuery();
 		return $this;
 	}

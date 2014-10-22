@@ -145,6 +145,24 @@ class PSHD {
         return $this->_defaultLimit;
     }
 
+
+	/**
+	 * @var string
+	 */
+	protected $_joinChar = "|";
+	/**
+	 * @param string $char
+	 */
+	public function setJoinChar($char="|") {
+		$this->_joinChar = $char;
+	}
+	/**
+	 * @return string
+	 */
+	public function getJoinChar() {
+		return $this->_joinChar;
+	}
+
     /**
      * @var string
      */
@@ -152,7 +170,7 @@ class PSHD {
     /**
      * @param string $char
      */
-    public function setLeftJoinChar($char="") {
+    public function setLeftJoinChar($char="<") {
         $this->_leftJoinChar = $char;
     }
     /**
@@ -169,7 +187,7 @@ class PSHD {
     /**
      * @param string $char
      */
-    public function setInnerJoinChar($char="") {
+    public function setInnerJoinChar($char="+") {
         $this->_innerJoinChar = $char;
     }
     /**
@@ -186,7 +204,7 @@ class PSHD {
     /**
      * @param string $char
      */
-    public function setRightJoinChar($char="") {
+    public function setRightJoinChar($char=">") {
         $this->_rightJoinChar = $char;
     }
     /**
@@ -277,6 +295,14 @@ class PSHD {
      * @throws \Exception
      */
     public function triggerError($query,$parameters=array(),$exception=null) {
+		$ps = "";
+		if(is_array($parameters) && count($parameters)) {
+			ob_start();
+			print_r($parameters);
+			$ps.= "\r\n";
+			$ps.= ob_get_clean();
+		}
+		if($exception===null) $exception = new Exception($query.$ps);
         $query = (string)$query;
         if(!is_callable($this->_errorHandler)) {
             ob_start();
@@ -361,7 +387,7 @@ class PSHD {
     }
 
     /**
-     * @param string|Where $clause
+     * @param string|int|array|Where $clause
      * @param array $parameters (optional)
      * @return Where
      */
@@ -407,7 +433,7 @@ class PSHD {
             $this->triggerError("",array(),new \Exception("Data array is empty"));
             return -1;
         }
-        $place = ",(".substr(str_repeat(",?",count($data)),1).")";
+        $place = ",(".substr(str_repeat(",?",count($data[0])),1).")";
         $p = array();
         $q = " INSERT INTO ";
         $q.= $this->prefixTable($table);
@@ -423,7 +449,6 @@ class PSHD {
             $q.= " ON DUPLICATE KEY UPDATE ".substr($dup,1);
         }
         foreach($data as $dv) foreach($dv as $v) $p[]= $v;
-        predump($q,$p);
         $this->execute($q,$p);
         return intval($this->_pdo->lastInsertId());
     }

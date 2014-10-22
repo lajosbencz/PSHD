@@ -6,12 +6,21 @@ namespace PSHD;
 
 class Where {
 
+	/**
+	 * @param $arr
+	 * @return bool
+	 */
+	public static function IsAssoc(&$arr)
+	{
+		return array_keys($arr) !== range(0, count($arr) - 1);
+	}
+
     /**
      * @var PSHD
      */
     protected $_pshd = null;
     /**
-     * @var string
+     * @var string|int|array
      */
     protected $_clause = null;
     /**
@@ -26,15 +35,24 @@ class Where {
      */
     public function __construct($pshd, $clause=null, $parameters=array()) {
         $this->_pshd = $pshd;
-        if(!is_array($parameters)) $parameters = array($parameters);
-        if(is_numeric($clause)) $clause = array($this->_pshd->getIdField()=>$clause);
+        if(isset($parameters) && !is_array($parameters)) $parameters = array($parameters);
+        if(is_numeric($clause)) $clause = array($this->_pshd->getIdField() => $clause);
         if(is_array($clause)) {
             $where = "";
             $parameters = array();
-            foreach($clause as $k=>$v) {
-				$where.=" AND $k=?";
-                $parameters[]=$v;
-            }
+			$isAssoc = self::IsAssoc($clause);
+			if($isAssoc) {
+				foreach($clause as $k=>$v) {
+					$where.=" AND $k=?";
+					$parameters[]=$v;
+				}
+			} else {
+				foreach($clause as $v) {
+					$w = new Where($pshd,$v);
+					$where.= " AND ".$w->getClause();
+					$parameters[] = $w->getParameters();
+				}
+			}
             $clause = substr($where,4);
         }
         $this->setClause($clause);
