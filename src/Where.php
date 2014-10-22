@@ -9,7 +9,7 @@ class Where {
     /**
      * @var PSHD
      */
-    protected $_shdb = null;
+    protected $_pshd = null;
     /**
      * @var string
      */
@@ -20,19 +20,20 @@ class Where {
     protected $_parameters = array();
 
     /**
-     * @param PSHD $shdb
+     * @param PSHD $pshd
      * @param string|array $clause (optional)
      * @param array $parameters (optional)
      */
-    public function __construct($shdb, $clause=null, $parameters=array()) {
-        $this->_shdb = $shdb;
+    public function __construct($pshd, $clause=null, $parameters=array()) {
+        $this->_pshd = $pshd;
         if(!is_array($parameters)) $parameters = array($parameters);
-        if(is_numeric($clause)) $clause = array($this->_shdb->getIdField()=>$clause);
+        if(is_numeric($clause)) $clause = array($this->_pshd->getIdField()=>$clause);
         if(is_array($clause)) {
             $where = "";
             $parameters = array();
             foreach($clause as $k=>$v) {
-                $where.=" AND $k=?";
+                if($this->_pshd->isMS()) $where.=" AND $k=CAST(? AS VARCHAR(".strlen($v)."))";
+                else $where.=" AND $k=?";
                 $parameters[]=$v;
             }
             $clause = substr($where,4);

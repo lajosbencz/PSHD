@@ -5,11 +5,12 @@ namespace PSHD;
 
 class PSHD {
 
-    public static $VALID_DSN = array(
+    public static $VALID_DRIVER = array(
         'mysql',    // http://php.net/manual/en/ref.pdo-mysql.connection.php
         'pgsql',    // http://php.net/manual/en/ref.pdo-pgsql.connection.php
         'sqlite',   // http://php.net/manual/en/ref.pdo-sqlite.connection.php
         /* wrap paging for these drivers */
+        'odbc',   // http://php.net/manual/en/ref.pdo-odbc.connection.php
         'sqlsrv',   // http://php.net/manual/en/ref.pdo-sqlsrv.connection.php
         'sybase',   // http://php.net/manual/en/ref.pdo-dblib.connection.php
         'dblib',    // http://php.net/manual/en/ref.pdo-dblib.connection.php
@@ -26,6 +27,18 @@ class PSHD {
     public function isMS($isMs=null) {
         if(is_bool($isMs)) $this->_isMS = $isMs;
         return $this->_isMS;
+    }
+
+    /**
+     * @var string
+     */
+    protected $_driver;
+
+    /**
+     * @return string
+     */
+    public function getDriver() {
+        return $this->_driver;
     }
 
     /**
@@ -245,22 +258,23 @@ class PSHD {
 		$dbName = false;
         if(is_array($dsn)) {
 			$dbName =(isset($dsn['database'])?$dsn['database']:false);
-            $this->_idField = (isset($dsn['idField'])?:$this->_idField);
-			$this->_idPaging = (isset($dsn['idPaging'])?:$this->_idPaging);
-            $this->_tablePrefix = (isset($dsn['tablePrefix'])?:$this->_tablePrefix);
-            $this->_tablePrefixPlace = (isset($dsn['tablePrefixPlace'])?:$this->_tablePrefixPlace);
-            $this->_leftJoinChar = (isset($dsn['leftJoinChar'])?:$this->_leftJoinChar);
-            $this->_innerJoinChar = (isset($dsn['innerJoinChar'])?:$this->_innerJoinChar);
-            $this->_rightJoinChar = (isset($dsn['rightJoinChar'])?:$this->_rightJoinChar);
-            $this->_subSelectChar = (isset($dsn['subSelectChar'])?:$this->_subSelectChar);
+            $this->_idField = (isset($dsn['idField'])?$dsn['idField']:$this->_idField);
+			$this->_idPaging = (isset($dsn['idPaging'])?$dsn['idPaging']:$this->_idPaging);
+            $this->_tablePrefix = (isset($dsn['tablePrefix'])?$dsn['tablePrefix']:$this->_tablePrefix);
+            $this->_tablePrefixPlace = (isset($dsn['tablePrefixPlace'])?$dsn['tablePrefixPlace']:$this->_tablePrefixPlace);
+            $this->_leftJoinChar = (isset($dsn['leftJoinChar'])?$dsn['leftJoinChar']:$this->_leftJoinChar);
+            $this->_innerJoinChar = (isset($dsn['innerJoinChar'])?$dsn['innerJoinChar']:$this->_innerJoinChar);
+            $this->_rightJoinChar = (isset($dsn['rightJoinChar'])?$dsn['rightJoinChar']:$this->_rightJoinChar);
+            $this->_subSelectChar = (isset($dsn['subSelectChar'])?$dsn['subSelectChar']:$this->_subSelectChar);
             $this->_defaultLimit = (isset($dsn['defaultLimit'])?intval($dsn['defaultLimit']):$this->_defaultLimit);
             if(isset($dsn['charset'])) $charset = $dsn['charset'];
             $password = $dsn['password'];
             $user = $dsn['user'];
             $dsn = $dsn['dsn'];
         }
-        if(preg_match("/^(sqlsrv|sybase|dblib|odbc)/",$dsn)) $this->_isMS = true;
-		if(strpos($dsn,'dblib')===0) {
+        $this->_driver = substr($dsn,0,strpos($dsn,':'));
+        if(in_array($this->getDriver(),array('odbc','sqlsrv','dblib','sybase'))) $this->_isMS = true;
+		if($this->getDriver() == 'dblib') {
 			// attributes not supported
 			$attr = array();
 		} else {
@@ -386,6 +400,17 @@ class PSHD {
 
     /**
      * @param string $table
+     * @param array $where
+     * @param array $parameters
+     * @return bool
+     */
+    public function exists($table,$where,$parameters=array()) {
+        $w = $this->where($where, $parameters);
+        return $this->select()->from($table)->where($w)->count()>0;
+    }
+
+    /**
+     * @param string $table
      * @param array $data
      * @param bool $onDuplicateUpdate (optional)
      * @return int
@@ -394,31 +419,47 @@ class PSHD {
         $multi = false;
         foreach($data as $dk=>$dv) {
             if(is_array($dv)) $multi = true;
-            if((!$multi && is_numeric($dk)) || ($multi && is_numeric(array_keys($dv)[0]))) $this->triggerError("",array(),new \Exception("Passed in data array must be associative!"));
+            if((!$multi && is_numeric($dk)) || ($multi && is_numeric(array_keys($dv)[0]))) {
+                $this->triggerError("",array(),new \Exception("Passed in data array must be associative!"));
+                return -1;
+            }
             break;
         }
-        if($multi) $head = array_keys($data[0]);
-        else $head = array_keys($data);
-        $count = $multi?count($data[0]):count($data);
-        if($count<1) $this->triggerError("",array(),new \Exception("Data array is empty"));
-        $vals = substr(str_repeat(',?',$count),1);
-        if($multi) $vals = substr(str_repeat("),(".$vals,count($data)),3);
-        $vals = "(".$vals.")";
-        $duplicateUpdate = "";
+        if(!$multi) $data = array($data);
+        $head = array_keys($data[0]);
+        $count = count($data[0]);
+        if($count<1) {
+            $this->triggerError("",array(),new \Exception("Data array is empty"));
+            return -1;
+        }
+        $place = "";
+        foreach($data[0] as $v) {
+            if($this->isMS()) {
+                if(!is_numeric($v)) $place.=sprintf(",'%s'",$v);
+                else $place.=sprintf(",%s",$v);
+            } else {
+                $place.= ",?";
+            }
+        }
+        $place = ",(".substr($place,1).")";
+        $p = array();
+        $q = " INSERT INTO ";
+        $q.= $this->prefixTable($table);
+        $q.= ' ( ';
+        $q.= implode(',',$head);
+        $q.= ' )  VALUES ';
+        if($multi) $q.= ' ( ';
+        $q.= substr(str_repeat($place,count($data)),1);
+        if($multi) $q.= ' ) ';
         if($onDuplicateUpdate) {
             $dup = "";
             foreach($head as $h) $dup.=",$h=VALUES($h) ";
-            $dup = substr($dup,1);
-            $duplicateUpdate = "ON DUPLICATE KEY UPDATE ".$dup;
+            $q.= " ON DUPLICATE KEY UPDATE ".substr($dup,1);
         }
-        $q = sprintf("INSERT INTO %s (%s) VALUES %s %s",$this->prefixTable($table),implode(',',$head),$vals,$duplicateUpdate);
-        $p = array();
-        foreach($data as $dv) {
-            if($multi) foreach($dv as $sdv) $p[]=$sdv;
-            else $p[] = $dv;
-        }
+        if(!$this->isMS()) foreach($data as $dv) foreach($dv as $v) $p[]= $v;
+        predump($q,$p);
         $this->execute($q,$p);
-        return intval($this->_pdo->lastInsertId());
+        return $this->isMS()?false:intval($this->_pdo->lastInsertId());
     }
 
     public function select($fields="*") {

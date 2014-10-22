@@ -145,6 +145,10 @@ class Select extends Result {
 		parent::__construct($pshd);
     }
 
+	public function getPSHD() {
+		return $this->_pshd;
+	}
+
     /**
      * @param string|array $fields,...
      * @return $this
@@ -338,6 +342,10 @@ class Select extends Result {
 		$c = clone $this;
 		if($removeLimitOffset) $c->limit(null,null);
 		return count($c->column());
+	}
+
+	public function literal($expression,$parameters=array()) {
+		return new Literal($expression,$parameters,$this->getPSHD());
 	}
 
     protected function _buildSub(&$data) {
