@@ -412,7 +412,7 @@ class PSHD
 			}
 			$password = $dsn['password'];
 			$user = $dsn['user'];
-			if (isset($dsn['driver']) && strlen($dsn['driver']) > 0) {
+			if (isset($dsn['driver']) && strlen($dsn['driver']) > 0 && (isset($dsn['socket']) && strlen($dsn['socket']) > 0 || isset($dsn['host']) && strlen($dsn['host']) > 0)) {
 				if (isset($dsn['socket']) && strlen($dsn['socket']) > 0) {
 					$dsn = sprintf("%s:unix_socket=%s", $dsn['driver'], $dsn['socket']);
 				} else {
