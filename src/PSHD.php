@@ -14,11 +14,11 @@ class PSHD
 	public static $VALID_CONFIG = array(
 		'dsn',
 		// OR
-			'driver',
+		'driver',
 			'socket',
 			// OR
 			'host',
-			'port',
+			'port', // optional
 
 		'user',
 		'password',
