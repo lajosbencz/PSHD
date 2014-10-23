@@ -427,6 +427,7 @@ class PSHD
 			}
 		}
 		$this->_driver = substr($dsn, 0, strpos($dsn, ':'));
+		if(!in_array($this->_driver,self::$VALID_DRIVER)) throw new Exception("Invalid driver! (".$this->_driver.")");
 		$attr = array(
 			\PDO::ATTR_PERSISTENT => true,
 			\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
