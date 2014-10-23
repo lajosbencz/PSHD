@@ -1,7 +1,5 @@
 <?php
 
-// foo
-
 namespace PSHD;
 
 class Exception extends \Exception {

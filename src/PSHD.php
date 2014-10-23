@@ -70,26 +70,6 @@ class PSHD {
         return $this->_idField;
     }
 
-	/**
-	 * @var string
-	 */
-	protected $_idPaging = '_PSHD_PAGING_ID__HIDDEN';
-
-	/**
-	 * @param string $name
-	 * @return $this
-	 */
-	public function setIdPaging($name='_PSHD_PAGING_ID__HIDDEN') {
-		$this->_idPaging = $name;
-		return $this;
-	}
-	/**
-	 * @return string
-	 */
-	public function getIdPaging() {
-		return $this->_idPaging;
-	}
-
     /**
      * @var string
      */
@@ -233,6 +213,30 @@ class PSHD {
         return $this->_subSelectChar;
     }
 
+	/**
+	 * @return bool
+	 */
+	public function begin() {
+		$this->execute("SET autocommit=1;");
+		return $this->_pdo->beginTransaction();
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function rollBack() {
+		return $this->_pdo->rollBack();
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function commit() {
+		$r = $this->_pdo->commit();
+		$this->execute("SET autocommit=1;");
+		return $r;
+	}
+
     /**
      * @param string $query
      * @param int|array $parameters
@@ -259,7 +263,6 @@ class PSHD {
         if(is_array($dsn)) {
 			$dbName =(isset($dsn['database'])?$dsn['database']:false);
             $this->_idField = (isset($dsn['idField'])?$dsn['idField']:$this->_idField);
-			$this->_idPaging = (isset($dsn['idPaging'])?$dsn['idPaging']:$this->_idPaging);
             $this->_tablePrefix = (isset($dsn['tablePrefix'])?$dsn['tablePrefix']:$this->_tablePrefix);
             $this->_tablePrefixPlace = (isset($dsn['tablePrefixPlace'])?$dsn['tablePrefixPlace']:$this->_tablePrefixPlace);
             $this->_leftJoinChar = (isset($dsn['leftJoinChar'])?$dsn['leftJoinChar']:$this->_leftJoinChar);
@@ -440,9 +443,7 @@ class PSHD {
         $q.= ' ( ';
         $q.= implode(',',$head);
         $q.= ' )  VALUES ';
-        if($multi) $q.= ' ( ';
         $q.= substr(str_repeat($place,count($data)),1);
-        if($multi) $q.= ' ) ';
         if($onDuplicateUpdate) {
             $dup = "";
             foreach($head as $h) $dup.=",$h=VALUES($h) ";
