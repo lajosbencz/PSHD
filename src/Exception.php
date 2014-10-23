@@ -1,11 +1,13 @@
 <?php
 
-namespace PSHD;
+namespace LajosBencz\PSHD;
 
-class Exception extends \Exception {
+class Exception extends \Exception
+{
 
-    public function __construct($message="",$code=0,$exception=null) {
-        parent::__construct($message,$code,$exception);
-    }
+	public function __construct($message = "", $code = 0, $exception = null)
+	{
+		parent::__construct($message, $code, $exception);
+	}
 
 }
