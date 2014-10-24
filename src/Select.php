@@ -58,6 +58,7 @@ class Select extends Result
 				if (strlen($jMode) > 0) if (($jInvert = ($jMode[0] == '_'))) $jMode = substr($jMode, 1);
 				break;
 			}
+
 			$qJoin .= sprintf(" %s JOIN %s AS %s ON %s.%s_%s=%s.%s ",
 				$jMode,
 				$jTable,
@@ -109,7 +110,7 @@ class Select extends Result
 		if (count($this->_groupBy) > 0) {
 			$qGroupBy = "GROUP BY";
 			foreach ($this->_groupBy as $field => $v) {
-				if ($field[0] == '.') $field = substr($field, 1);
+				if ($field[0] == '.') $field = $qFrom.$field;
 				$qGroupBy .= " $field,";
 			}
 			$qGroupBy = substr($qGroupBy, 0, -1);
@@ -117,7 +118,7 @@ class Select extends Result
 		if (count($this->_orderBy) > 0) {
 			$qOrderBy = "ORDER BY";
 			foreach ($this->_orderBy as $field => $order) {
-				if ($field[0] == '.') $field = substr($field, 1);
+				if ($field[0] == '.') $field = $qFrom.$field;
 				$qOrderBy .= " $field $order,";
 			}
 			$qOrderBy = substr($qOrderBy, 0, -1);
@@ -483,12 +484,16 @@ class Select extends Result
 
 	protected function _toHtml($t, $style = true)
 	{
-		if (count($t) < 1) return '';
+		$n = count($t);
+		if ($n < 1) return '';
 		$st = ' style="text-align: right; vertical-align: top; border:1px solid black; padding:2px; border-spacing: 0"';
 		$sr = ' style="background: #eee; padding: 0;"';
 		$sr2 = ' style="vertical-align: top;"';
 		$sd = ' style="border-top:1px solid #ddd;"';
 		$html = '<table' . ($style ? $st : '') . '>';
+		$html .= '<tr' . ($style ? $sr : '') . '>';
+			$html .= '<th colspan="999">' . $this->_from . ': ' . $n . ' rows</th>';
+		$html .= '</tr>';
 		$html .= '<tr' . ($style ? $sr : '') . '>';
 		foreach ($t[0] as $h => $v)
 			$html .= '<th>' . $h . '</th>';

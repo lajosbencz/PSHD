@@ -643,13 +643,11 @@ class PSHD
 			if(is_object($dv) && get_class($dv)==__NAMESPACE__.'\\Literal') {
 				/** @var $dv Literal */
 				$place.= ','.$dv->getExpression();
-				foreach($dv->getParameters() as $dp) $p[] = $dp;
 			} else {
 				$place.= ',?';
-				$p[] = $dv;
 			}
 		}
-		$place = ",(" . $place . ")";
+		$place = ",(" . substr($place,1) . ")";
 		$q .= substr(str_repeat($place, count($data)), 1);
 		if ($onDuplicateUpdate) {
 			$dup = "";
@@ -657,7 +655,12 @@ class PSHD
 			$q .= " ON DUPLICATE KEY UPDATE " . substr($dup, 1);
 		}
 		foreach ($data as $dv) foreach ($dv as $v) $p[] = $v;
-		$this->prepare($q)->execute($p);
+		try {
+			$this->prepare($q)->execute($p);
+		} catch(\Exception $e) {
+			$this->triggerError($q,$p,$e);
+			return -1;
+		}
 		return intval($this->_pdo->lastInsertId());
 	}
 
@@ -692,7 +695,13 @@ class PSHD
 		$whr = $this->where($where);
 		$q = sprintf("UPDATE %s SET %s WHERE %s", $this->prefixTable($table), $set, $whr->getClause());
 		$p = array_merge($p, $whr->getParameters());
-		return $this->prepare($q)->execute($p);
+		try {
+			$r = $this->prepare($q)->execute($p);
+			return $r;
+		} catch(\Exception $e) {
+			$this->triggerError($q,$p,$e);
+		}
+		return null;
 	}
 
 	/**
@@ -704,7 +713,14 @@ class PSHD
 	{
 		$whr = $this->where($where);
 		$q = sprintf("DELETE FROM %s WHERE %s", $this->prefixTable($table), $whr->getClause());
-		return $this->prepare($q)->execute($whr->getParameters());
+		$p = $whr->getParameters();
+		try {
+			$r = $this->prepare($q)->execute($p);
+			return $r;
+		} catch(\Exception $e) {
+			$this->triggerError($q,$p,$e);
+		}
+		return null;
 	}
 
 }
