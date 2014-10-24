@@ -93,7 +93,7 @@ class Where
 	 * @param $prm
 	 * @return $this
 	 */
-	public function addDarameter($prm)
+	public function addParameter($prm)
 	{
 		$this->_parameters[] = $prm;
 		return $this;
