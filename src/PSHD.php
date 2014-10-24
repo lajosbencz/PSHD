@@ -518,12 +518,14 @@ class PSHD
 	}
 
 	/**
-	 * @param string $expression
+	 * @param $expression
+	 * @param array $parameters
+	 * @param PSHD $pshd
 	 * @return Literal
 	 */
-	public function literal($expression)
+	public function literal($expression, $parameters=array(), $pshd=null)
 	{
-		return new Literal($this, $expression);
+		return new Literal($expression, $parameters, $pshd);
 	}
 
 	/**
@@ -617,7 +619,7 @@ class PSHD
 		foreach ($data as $dk => $dv) {
 			if (is_array($dv)) $multi = true;
 			if ((!$multi && is_numeric($dk)) || ($multi && is_numeric(array_keys($dv)[0]))) {
-				$this->triggerError("", array(), new \Exception("Passed in data array must be associative!"));
+				$this->triggerError("Passed in data array must be associative!", array(), new \Exception("Passed in data array must be associative!"));
 				return -1;
 			}
 			break;
@@ -626,7 +628,7 @@ class PSHD
 		$head = array_keys($data[0]);
 		$count = count($data[0]);
 		if ($count < 1) {
-			$this->triggerError("", array(), new \Exception("Data array is empty"));
+			$this->triggerError("Data array is empty", array(), new \Exception("Data array is empty"));
 			return -1;
 		}
 		$place = "";
