@@ -28,6 +28,7 @@ class PSHD
 		'database',
 		'charset',
 		'idField',
+		'idPlace',
 		'tablePrefix',
 		'tablePrefixPlace',
 		'defaultLimit',
@@ -150,6 +151,29 @@ class PSHD
 	public function getIdField()
 	{
 		return $this->_idField;
+	}
+
+	/**
+	 * @var string
+	 */
+	protected $_idPlace = '{I}';
+
+	/**
+	 * @param string $name
+	 * @return $this
+	 */
+	public function setIdPlace($name = '{I}')
+	{
+		$this->_idPlace = $name;
+		return $this;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getIdPlace()
+	{
+		return $this->_idPlace;
 	}
 
 	/**
@@ -476,6 +500,11 @@ class PSHD
 		return str_replace($this->getTablePrefixPlace(), $this->getTablePrefix(), $table);
 	}
 
+	public function replaceIdField($str) {
+		if(strlen($this->getIdPlace())>0) return str_replace($this->getIdPlace(),$this->getIdField(),$str);
+		return $str;
+	}
+
 
 	/**
 	 * @param bool $on (optional)
@@ -498,23 +527,24 @@ class PSHD
 	}
 
 	/**
-	 * @param $query
-	 * @param array $params (optional)
+	 * @param string $format
+	 * @param mixed ...
 	 * @return int|null
 	 */
-	public function execute($query, $params = array())
+	public function execute($format)
 	{
+		$a = func_get_args();
+		if(count($a)<1) return null;
+		$query = array_shift($a);
+		if(count($a)>0) $query = vsprintf($query,$a);
 		try {
-			$s = $this->_pdo->prepare($this->prefixTable($query));
-			$s->execute($params);
+			$s = $this->_pdo->exec($this->replaceIdField($this->prefixTable($query)));
 		} catch (\Exception $e) {
-			$this->triggerError($query, $params, $e);
+			$this->triggerError($query, array(), $e);
 			return null;
 		}
-		$n = $s->rowCount();
-		$s = null;
-		unset($s);
-		return $n;
+
+		return $s;
 	}
 
 	/**
@@ -524,7 +554,7 @@ class PSHD
 	public function prepare($query)
 	{
 		try {
-			$r = $this->_pdo->prepare($this->prefixTable($query));
+			$r = $this->_pdo->prepare($this->replaceIdField($this->prefixTable($query)));
 		} catch (\Exception $e) {
 			$this->triggerError($query, array(), $e);
 			return null;
@@ -540,7 +570,7 @@ class PSHD
 	public function query($query, $params = array())
 	{
 		try {
-			$s = $this->_pdo->prepare($this->prefixTable($query));
+			$s = $this->_pdo->prepare($this->replaceIdField($this->prefixTable($query)));
 			$s->execute($params);
 		} catch (\Exception $e) {
 			$this->triggerError($query, $params, $e);

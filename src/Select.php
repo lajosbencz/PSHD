@@ -125,7 +125,7 @@ class Select extends Result
 		if (is_numeric($this->_limit) || is_numeric($this->_offset)) {
 			$qLimitOffset = sprintf("LIMIT %d OFFSET %d", max(1, $this->_limit), max(0, $this->_offset));
 		}
-		$this->_query = trim(sprintf("SELECT %s FROM %s %s %s %s %s %s", $qSelect, $qFrom, $qJoin, $qWhere, $qGroupBy, $qOrderBy, $qLimitOffset));
+		$this->_query = $this->_pshd->replaceIdField(trim(sprintf("SELECT %s FROM %s %s %s %s %s %s", $qSelect, $qFrom, $qJoin, $qWhere, $qGroupBy, $qOrderBy, $qLimitOffset)));
 	}
 
 	protected function _addJoinAndSub($field, $alias = false)
