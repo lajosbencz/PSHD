@@ -15,10 +15,10 @@ class PSHD
 		'dsn',
 		// OR
 		'driver',
-			'socket',
-			// OR
-			'host',
-			'port', // optional
+		'socket',
+		// OR
+		'host',
+		'port', // optional
 
 		'user',
 		'password',
@@ -451,7 +451,7 @@ class PSHD
 			}
 		}
 		$this->_driver = substr($dsn, 0, strpos($dsn, ':'));
-		if(!in_array($this->_driver,self::$VALID_DRIVER)) throw new Exception("Invalid driver! (".$this->_driver.")");
+		if (!in_array($this->_driver, self::$VALID_DRIVER)) throw new Exception("Invalid driver! (" . $this->_driver . ")");
 		$attr = array(
 			\PDO::ATTR_PERSISTENT => true,
 			\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
@@ -500,8 +500,9 @@ class PSHD
 		return str_replace($this->getTablePrefixPlace(), $this->getTablePrefix(), $table);
 	}
 
-	public function replaceIdField($str) {
-		if(strlen($this->getIdPlace())>0) return str_replace($this->getIdPlace(),$this->getIdField(),$str);
+	public function replaceIdField($str)
+	{
+		if (strlen($this->getIdPlace()) > 0) return str_replace($this->getIdPlace(), $this->getIdField(), $str);
 		return $str;
 	}
 
@@ -523,7 +524,7 @@ class PSHD
 	 * @param PSHD $pshd
 	 * @return Literal
 	 */
-	public function literal($expression, $parameters=array(), $pshd=null)
+	public function literal($expression, $parameters = array(), $pshd = null)
 	{
 		return new Literal($expression, $parameters, $pshd);
 	}
@@ -536,9 +537,9 @@ class PSHD
 	public function execute($format)
 	{
 		$a = func_get_args();
-		if(count($a)<1) return null;
+		if (count($a) < 1) return null;
 		$query = array_shift($a);
-		if(count($a)>0) $query = vsprintf($query,$a);
+		if (count($a) > 0) $query = vsprintf($query, $a);
 		try {
 			$s = $this->_pdo->exec($this->replaceIdField($this->prefixTable($query)));
 		} catch (\Exception $e) {
@@ -639,15 +640,15 @@ class PSHD
 		$q .= ' ( ';
 		$q .= implode(',', $head);
 		$q .= ' )  VALUES ';
-		foreach($data[0] as $dv) {
-			if(is_object($dv) && get_class($dv)==__NAMESPACE__.'\\Literal') {
+		foreach ($data[0] as $dv) {
+			if (is_object($dv) && get_class($dv) == __NAMESPACE__ . '\\Literal') {
 				/** @var $dv Literal */
-				$place.= ','.$dv->getExpression();
+				$place .= ',' . $dv->getExpression();
 			} else {
-				$place.= ',?';
+				$place .= ',?';
 			}
 		}
-		$place = ",(" . substr($place,1) . ")";
+		$place = ",(" . substr($place, 1) . ")";
 		$q .= substr(str_repeat($place, count($data)), 1);
 		if ($onDuplicateUpdate) {
 			$dup = "";
@@ -657,8 +658,8 @@ class PSHD
 		foreach ($data as $dv) foreach ($dv as $v) $p[] = $v;
 		try {
 			$this->prepare($q)->execute($p);
-		} catch(\Exception $e) {
-			$this->triggerError($q,$p,$e);
+		} catch (\Exception $e) {
+			$this->triggerError($q, $p, $e);
 			return -1;
 		}
 		return intval($this->_pdo->lastInsertId());
@@ -682,10 +683,10 @@ class PSHD
 		$set = "";
 		$p = array();
 		foreach ($data as $k => $v) {
-			if(is_object($v) && get_class($v)==__NAMESPACE__.'\\Literal') {
+			if (is_object($v) && get_class($v) == __NAMESPACE__ . '\\Literal') {
 				/** @var Literal $v */
-				$set.= ", $k=".$v->getExpression();
-				foreach($v->getParameters() as $vp) $p[] = $vp;
+				$set .= ", $k=" . $v->getExpression();
+				foreach ($v->getParameters() as $vp) $p[] = $vp;
 			} else {
 				$set .= ", $k=?";
 				$p[] = $v;
@@ -698,8 +699,8 @@ class PSHD
 		try {
 			$r = $this->prepare($q)->execute($p);
 			return $r;
-		} catch(\Exception $e) {
-			$this->triggerError($q,$p,$e);
+		} catch (\Exception $e) {
+			$this->triggerError($q, $p, $e);
 		}
 		return null;
 	}
@@ -717,8 +718,8 @@ class PSHD
 		try {
 			$r = $this->prepare($q)->execute($p);
 			return $r;
-		} catch(\Exception $e) {
-			$this->triggerError($q,$p,$e);
+		} catch (\Exception $e) {
+			$this->triggerError($q, $p, $e);
 		}
 		return null;
 	}

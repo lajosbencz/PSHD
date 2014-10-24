@@ -53,7 +53,7 @@ class Result
 	 */
 	public function rowCount()
 	{
-		if(!$this->_pdoStmnt) return null;
+		if (!$this->_pdoStmnt) return null;
 		return $this->_rowCount;
 	}
 
@@ -64,7 +64,7 @@ class Result
 	public function cell($idx = 0)
 	{
 		$this->_preProcess();
-		if(!$this->_pdoStmnt) return null;
+		if (!$this->_pdoStmnt) return null;
 		$r = $this->_pdoStmnt->fetch(\PDO::FETCH_NUM);
 		$idx = max(0, min($this->_colCount - 1, $idx));
 		$this->_postProcess();
@@ -77,7 +77,7 @@ class Result
 	public function row()
 	{
 		$this->_preProcess();
-		if(!$this->_pdoStmnt) return null;
+		if (!$this->_pdoStmnt) return null;
 		$r = $this->_pdoStmnt->fetch(\PDO::FETCH_NUM);
 		$this->_postProcess();
 		return $r;
@@ -89,7 +89,7 @@ class Result
 	public function assoc()
 	{
 		$this->_preProcess();
-		if(!$this->_pdoStmnt) return null;
+		if (!$this->_pdoStmnt) return null;
 		$r = $this->_pdoStmnt->fetch(\PDO::FETCH_ASSOC);
 		$this->_postProcess();
 		return $r;
@@ -102,7 +102,7 @@ class Result
 	public function column($idx = 0)
 	{
 		$this->_preProcess();
-		if(!$this->_pdoStmnt) return null;
+		if (!$this->_pdoStmnt) return null;
 		$a = $this->_pdoStmnt->fetchAll(\PDO::FETCH_NUM);
 		$idx = max(0, min($this->_colCount - 1, $idx));
 		$r = array();
@@ -118,7 +118,7 @@ class Result
 	public function table($assoc = true)
 	{
 		$this->_preProcess();
-		if(!$this->_pdoStmnt) return null;
+		if (!$this->_pdoStmnt) return null;
 		$r = $this->_pdoStmnt->fetchAll($assoc ? \PDO::FETCH_ASSOC : \PDO::FETCH_NUM);
 		$this->_postProcess();
 		return $r;

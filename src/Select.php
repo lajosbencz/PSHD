@@ -110,7 +110,7 @@ class Select extends Result
 		if (count($this->_groupBy) > 0) {
 			$qGroupBy = "GROUP BY";
 			foreach ($this->_groupBy as $field => $v) {
-				if ($field[0] == '.') $field = $qFrom.$field;
+				if ($field[0] == '.') $field = $qFrom . $field;
 				$qGroupBy .= " $field,";
 			}
 			$qGroupBy = substr($qGroupBy, 0, -1);
@@ -118,7 +118,7 @@ class Select extends Result
 		if (count($this->_orderBy) > 0) {
 			$qOrderBy = "ORDER BY";
 			foreach ($this->_orderBy as $field => $order) {
-				if ($field[0] == '.') $field = $qFrom.$field;
+				if ($field[0] == '.') $field = $qFrom . $field;
 				$qOrderBy .= " $field $order,";
 			}
 			$qOrderBy = substr($qOrderBy, 0, -1);
@@ -488,15 +488,16 @@ class Select extends Result
 		if ($n < 1) return '';
 		$st = ' style="text-align: right; vertical-align: top; border:1px solid black; padding:2px; border-spacing: 0"';
 		$sr = ' style="background: #eee; padding: 0;"';
+		$sh = ' style="border-right:2px solid #aaa; padding: 0 3px;"';
 		$sr2 = ' style="vertical-align: top;"';
-		$sd = ' style="border-top:1px solid #ddd;"';
+		$sd = ' style="border-right:1px solid #eee; border-top:1px solid #ddd;"';
 		$html = '<table' . ($style ? $st : '') . '>';
 		$html .= '<tr' . ($style ? $sr : '') . '>';
-			$html .= '<th colspan="999">' . $this->_from . ': ' . $n . ' rows</th>';
+		$html .= '<th colspan="999">' . $this->_from . ': ' . $n . ' rows</th>';
 		$html .= '</tr>';
 		$html .= '<tr' . ($style ? $sr : '') . '>';
 		foreach ($t[0] as $h => $v)
-			$html .= '<th>' . $h . '</th>';
+			$html .= '<th' . ($style ? $sh : '') . '>' . $h . '</th>';
 		$html .= '</tr>';
 		foreach ($t as $l) {
 			$html .= '<tr' . ($style ? $sr2 : '') . '>';
