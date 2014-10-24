@@ -1,27 +1,32 @@
 <?php
+/**
+ * PSHD utility wrapper
+ * @example http://pshd.lazos.me/example/ Brief tutorial
+ * @author Lajos Bencz <lazos@lazos.me>
+ */
 
 namespace LajosBencz\PSHD;
 
+/**
+ * Provides support for literal SQL values, may also be expanded with parameters
+ * Class Literal
+ * @package LajosBencz\PSHD
+ */
 class Literal
 {
 
-	protected $_pshd = null;
-	protected $_expression = null;
-	protected $_parameters = array();
-
 	/**
-	 * @param string $expression
-	 * @param array $parameters (optional)
-	 * @param PSHD $pshd (optional)
+	 * @var PSHD
 	 */
-	public function __construct($expression, $parameters = array(), $pshd = null)
-	{
-		$this->_pshd = $pshd;
-		if ($expression) $this->setExpression($expression);
-		$this->setParameters($parameters);
-	}
+	protected $_pshd = null;
 
 	/**
+	 * @var string
+	 */
+	protected $_expression = null;
+
+	/**
+	 * Set literal SQL expression
 	 * @param string $expression
 	 */
 	public function setExpression($expression)
@@ -30,6 +35,7 @@ class Literal
 	}
 
 	/**
+	 * Get literal SQL expression
 	 * @return string
 	 */
 	public function getExpression()
@@ -38,6 +44,12 @@ class Literal
 	}
 
 	/**
+	 * @var array
+	 */
+	protected $_parameters = array();
+
+	/**
+	 * Set parameters
 	 * @param array $parameters
 	 */
 	public function setParameters($parameters)
@@ -46,6 +58,16 @@ class Literal
 	}
 
 	/**
+	 * Get parameters
+	 * @return array
+	 */
+	public function getParameters()
+	{
+		return $this->_parameters;
+	}
+
+	/**
+	 * Add parameter
 	 * @param mixed $parameter
 	 */
 	public function addParameter($parameter)
@@ -54,13 +76,45 @@ class Literal
 	}
 
 	/**
-	 * @return array
+	 * @param string $expression Literal SQL expression
+	 * @param array $parameters (optional) Add parameters
+	 * @param PSHD $pshd (optional)
 	 */
-	public function getParameters()
+	public function __construct($expression, $parameters = array(), $pshd = null)
 	{
-		return $this->_parameters;
+		if (is_object($pshd)) if (get_class($pshd) == __NAMESPACE__ . '\\PSHD') $this->_pshd = $pshd;
+		if ($expression) $this->setExpression($expression);
+		$this->setParameters($parameters);
 	}
 
+	/**
+	 * Appends stored parameters to input variable, accepts Select or Array
+	 * @param Select|array $var
+	 * @return $this
+	 */
+	public function appendParanmetersTo(&$var)
+	{
+		$a = is_array($var);
+		$s = (is_object($var) && get_class($var) == __NAMESPACE__ . '\\Select');
+		foreach ($this->_parameters as $p) {
+			if ($a) {
+				/**
+				 * @var array $var
+				 */
+				array_push($var, $p);
+			} elseif ($s) {
+				/**
+				 * @var Select $var
+				 */
+				$var->addParameter($p);
+			}
+		}
+		return $this;
+	}
+
+	/**
+	 * @return string
+	 */
 	public function __toString()
 	{
 		return $this->getExpression();

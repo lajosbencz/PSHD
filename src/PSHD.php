@@ -1,29 +1,53 @@
 <?php
+/**
+ * PSHD utility wrapper
+ * @example http://pshd.lazos.me/example/ Brief tutorial
+ * @author Lajos Bencz <lazos@lazos.me>
+ */
 
 namespace LajosBencz\PSHD;
 
+/**
+ * PDO utility wrapper for short hand operations
+ * Class PSHD
+ * @package LajosBencz\PSHD
+ */
 class PSHD
 {
 
+	/**
+	 * Currently supported PDO drivers
+	 * @var array
+	 */
 	public static $VALID_DRIVER = array(
 		'mysql', // http://php.net/manual/en/ref.pdo-mysql.connection.php
 		'pgsql', // http://php.net/manual/en/ref.pdo-pgsql.connection.php
 		'sqlite', // http://php.net/manual/en/ref.pdo-sqlite.connection.php
 	);
 
+	/**
+	 * Required config.
+	 * You have three options:
+	 * - dsn
+	 * - driver
+	 *  - socket
+	 *  - host,[port]
+	 * @var array
+	 */
 	public static $VALID_CONFIG = array(
 		'dsn',
-		// OR
 		'driver',
 		'socket',
-		// OR
 		'host',
-		'port', // optional
-
+		'port',
 		'user',
 		'password',
 	);
 
+	/**
+	 * List of valid options
+	 * @var array
+	 */
 	public static $VALID_OPTION = array(
 		'database',
 		'charset',
@@ -46,6 +70,7 @@ class PSHD
 	protected $_driver;
 
 	/**
+	 * Get recognized driver
 	 * @return string
 	 */
 	public function getDriver()
@@ -59,6 +84,7 @@ class PSHD
 	protected $_pdo;
 
 	/**
+	 * Get underlying PDO object
 	 * @return \PDO
 	 */
 	public function getPDO()
@@ -67,20 +93,30 @@ class PSHD
 	}
 
 	/**
-	 * @var bool|callable
+	 * @var callable
 	 */
-	protected $_errorHandler = false;
+	protected $_errorHandler = null;
 
 	/**
-	 * @param bool|callable $handler
+	 * Set error handler. Assigned function will take Exception as parameter
+	 * @param null|callable $handler
 	 * @return $this
-	 * @throws \Exception
+	 * @throws Exception
 	 */
-	public function setErrorHandler($handler)
+	public function setErrorHandler($handler = null)
 	{
-		if ($handler !== false && !is_callable($handler)) throw new \Exception("Invalid handler passed in! (not callable)");
+		if ($handler !== null && !is_callable($handler)) throw new Exception("Invalid handler passed in!");
 		$this->_errorHandler = $handler;
 		return $this;
+	}
+
+	/**
+	 * Get error handler
+	 * @return callable
+	 */
+	public function getErrorHandler()
+	{
+		return $this->_errorHandler;
 	}
 
 
@@ -90,8 +126,9 @@ class PSHD
 	protected $_charset = 'utf8';
 
 	/**
-	 * string $name
-	 * return $this
+	 * Set character set
+	 * @param string $charset
+	 * @return $this
 	 */
 	public function setCharset($charset)
 	{
@@ -100,7 +137,8 @@ class PSHD
 	}
 
 	/**
-	 * return string
+	 * Get character set
+	 * @return string
 	 */
 	public function getCharset()
 	{
@@ -113,17 +151,21 @@ class PSHD
 	protected $_database = '';
 
 	/**
-	 * string $name
-	 * return $this
+	 * Set database name, if second parameter is true the SQL command will also be issued
+	 * @param string $database
+	 * @param bool $use
+	 * @return $this
 	 */
-	public function setDatabase($database)
+	public function setDatabase($database, $use = true)
 	{
 		$this->_database = $database;
+		if ($use) $this->execute("USE %s", $database);
 		return $this;
 	}
 
 	/**
-	 * return string
+	 * Get database name
+	 * @return string
 	 */
 	public function getDatabase()
 	{
@@ -133,19 +175,21 @@ class PSHD
 	/**
 	 * @var string
 	 */
-	protected $_idField = 'Id';
+	protected $_idField = 'id';
 
 	/**
+	 * Id field used for look-ups
 	 * @param string $name
 	 * @return $this
 	 */
-	public function setIdField($name = 'Id')
+	public function setIdField($name = 'id')
 	{
 		$this->_idField = $name;
 		return $this;
 	}
 
 	/**
+	 * Get idField
 	 * @return string
 	 */
 	public function getIdField()
@@ -159,6 +203,7 @@ class PSHD
 	protected $_idPlace = '{I}';
 
 	/**
+	 * Placeholder for idField. Will be replaced in raw SQL commands
 	 * @param string $name
 	 * @return $this
 	 */
@@ -169,6 +214,7 @@ class PSHD
 	}
 
 	/**
+	 * Get idPlace
 	 * @return string
 	 */
 	public function getIdPlace()
@@ -182,6 +228,7 @@ class PSHD
 	protected $_tablePrefix = "";
 
 	/**
+	 * Prefix for tables
 	 * @param string $prefix
 	 * @return $this
 	 */
@@ -192,6 +239,7 @@ class PSHD
 	}
 
 	/**
+	 * Get tablePrefix
 	 * @return string
 	 */
 	public function getTablePrefix()
@@ -205,6 +253,7 @@ class PSHD
 	protected $_tablePrefixPlace = "{P}";
 
 	/**
+	 * The placeholder for tablePrefix. Will be replaced in raw SQL commands
 	 * @param string $prefixPlace
 	 * @return $this
 	 */
@@ -215,6 +264,7 @@ class PSHD
 	}
 
 	/**
+	 * Get tablePrefixPlace
 	 * @return string
 	 */
 	public function getTablePrefixPlace()
@@ -228,6 +278,7 @@ class PSHD
 	protected $_defaultLimit = 1000000;
 
 	/**
+	 * Default limit for commands with Select
 	 * @param int $limit
 	 * @return $this
 	 */
@@ -238,6 +289,7 @@ class PSHD
 	}
 
 	/**
+	 * Get defaultLimit
 	 * @return int
 	 */
 	public function getDefaultLimit()
@@ -251,6 +303,7 @@ class PSHD
 	protected $_defaultPageLimit = 25;
 
 	/**
+	 * Default limit for pages with Select
 	 * @param int $pageLimit
 	 * @return $this
 	 */
@@ -261,6 +314,7 @@ class PSHD
 	}
 
 	/**
+	 * Get defaultPageLimit
 	 * @return int
 	 */
 	public function getDefaultPageLimit()
@@ -275,6 +329,8 @@ class PSHD
 	protected $_joinChar = "|";
 
 	/**
+	 * If Select fields start with this character, the following word will be joined as a table.
+	 * When the second characters is the same, tables roles will be inverted at the ON clause.
 	 * @param string $char
 	 */
 	public function setJoinChar($char = "|")
@@ -283,6 +339,7 @@ class PSHD
 	}
 
 	/**
+	 * Get joinChar
 	 * @return string
 	 */
 	public function getJoinChar()
@@ -296,6 +353,8 @@ class PSHD
 	protected $_leftJoinChar = "<";
 
 	/**
+	 * If Select fields start with this character, the following word will be joined as a table.
+	 * When the second characters is the same, tables roles will be inverted at the ON clause.
 	 * @param string $char
 	 */
 	public function setLeftJoinChar($char = "<")
@@ -304,6 +363,7 @@ class PSHD
 	}
 
 	/**
+	 * Get leftJoinChar
 	 * @return string
 	 */
 	public function getLeftJoinChar()
@@ -317,6 +377,8 @@ class PSHD
 	protected $_innerJoinChar = "+";
 
 	/**
+	 * If Select fields start with this character, the following word will be joined as a table.
+	 * When the second characters is the same, tables roles will be inverted at the ON clause.
 	 * @param string $char
 	 */
 	public function setInnerJoinChar($char = "+")
@@ -325,6 +387,7 @@ class PSHD
 	}
 
 	/**
+	 * Get innerJoinChar
 	 * @return string
 	 */
 	public function getInnerJoinChar()
@@ -338,6 +401,8 @@ class PSHD
 	protected $_rightJoinChar = ">";
 
 	/**
+	 * If Select fields start with this character, the following word will be joined as a table.
+	 * When the second characters is the same, column roles will be inverted at the ON clause.
 	 * @param string $char
 	 */
 	public function setRightJoinChar($char = ">")
@@ -346,6 +411,7 @@ class PSHD
 	}
 
 	/**
+	 * Get rightJoinChar
 	 * @return string
 	 */
 	public function getRightJoinChar()
@@ -359,6 +425,8 @@ class PSHD
 	protected $_subSelectChar = "^";
 
 	/**
+	 * If Select fields start with this character, the following word will be selected as a sub-table.
+	 * When the second characters is the same, column roles will be inverted at the WHERE clause.
 	 * @param $char
 	 * @return $this
 	 */
@@ -369,6 +437,7 @@ class PSHD
 	}
 
 	/**
+	 * Get subSelectChar
 	 * @return string
 	 */
 	public function getSubSelectChar()
@@ -377,6 +446,7 @@ class PSHD
 	}
 
 	/**
+	 * Starts PDO transaction
 	 * @return bool
 	 */
 	public function begin()
@@ -386,6 +456,7 @@ class PSHD
 	}
 
 	/**
+	 * Roll PDO transaction back
 	 * @return bool
 	 */
 	public function rollBack()
@@ -394,6 +465,7 @@ class PSHD
 	}
 
 	/**
+	 * Commit PDO transaction
 	 * @return bool
 	 */
 	public function commit()
@@ -404,29 +476,13 @@ class PSHD
 	}
 
 	/**
-	 * @param string $query
-	 * @param int|array $parameters
-	 * @param \Exception|null $exception
-	 * @throws \Exception
-	 */
-	protected function _errorHandler($query = "", $parameters = array(), $exception = null)
-	{
-		if ($exception != null) throw $exception;
-		ob_start();
-		print_r($parameters);
-		$query .= "\r\n" . ob_get_clean();
-		throw new \Exception($query);
-	}
-
-	/**
 	 * @param string|array $dsn
 	 * @param string|null $user (optional)
 	 * @param string|null $password (optional)
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function __construct($dsn, $user = null, $password = null)
 	{
-		$this->setErrorHandler(array($this, '_errorHandler'));
 		if (is_array($dsn)) {
 			foreach (self::$VALID_OPTION as $o) {
 				if (isset($dsn[$o])) {
@@ -459,40 +515,19 @@ class PSHD
 		);
 		try {
 			$this->_pdo = new \PDO($dsn, $user, $password, $attr);
-		} catch (\PDOException $pe) {
-			$this->triggerError(null, null, $pe);
+		} catch (\Exception $pe) {
+			if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $pe);
+			else throw $pe;
 		}
 		if (strlen($this->_database) > 0) $this->execute("USE " . $this->_database);
 		if (strlen($this->_charset) > 0) $this->execute("SET NAMES " . $this->_charset);
 	}
 
-
 	/**
-	 * @param string $query
-	 * @param array $parameters
-	 * @param \Exception|null $exception
-	 * @throws \Exception
+	 * Convert table table to prefixed
+	 * @param string $table
+	 * @return string
 	 */
-	public function triggerError($query, $parameters = array(), $exception = null)
-	{
-		$ps = "";
-		if (is_array($parameters) && count($parameters)) {
-			ob_start();
-			print_r($parameters);
-			$ps .= "\r\n";
-			$ps .= ob_get_clean();
-		}
-		if ($exception === null) $exception = new Exception($query . $ps);
-		$query = (string)$query;
-		if (!is_callable($this->_errorHandler)) {
-			ob_start();
-			var_dump($parameters);
-			$prmString = ob_get_clean();
-			throw new Exception($query . "<br />\r\n" . $prmString, 0, $exception);
-		}
-		call_user_func($this->_errorHandler, $query, $parameters, $exception);
-	}
-
 	public function prefixTable($table)
 	{
 		if (is_string($this->getTablePrefix()) && strlen($this->getTablePrefix()) < 1) return str_replace($this->getTablePrefixPlace(), "", $table);
@@ -500,6 +535,11 @@ class PSHD
 		return str_replace($this->getTablePrefixPlace(), $this->getTablePrefix(), $table);
 	}
 
+	/**
+	 * Replace all occurrences of idPlace to idField in $str
+	 * @param $str
+	 * @return mixed
+	 */
 	public function replaceIdField($str)
 	{
 		if (strlen($this->getIdPlace()) > 0) return str_replace($this->getIdPlace(), $this->getIdField(), $str);
@@ -508,6 +548,7 @@ class PSHD
 
 
 	/**
+	 * Set auto-commit
 	 * @param bool $on (optional)
 	 * @return $this
 	 */
@@ -519,6 +560,7 @@ class PSHD
 	}
 
 	/**
+	 * Create literal SQL expression
 	 * @param $expression
 	 * @param array $parameters
 	 * @param PSHD $pshd
@@ -530,9 +572,11 @@ class PSHD
 	}
 
 	/**
+	 * Execute SQL query without PDO parameters. May be formatted as printf
 	 * @param string $format
 	 * @param mixed ...
 	 * @return int|null
+	 * @throws Exception
 	 */
 	public function execute($format)
 	{
@@ -543,32 +587,41 @@ class PSHD
 		try {
 			$s = $this->_pdo->exec($this->replaceIdField($this->prefixTable($query)));
 		} catch (\Exception $e) {
-			$this->triggerError($query, array(), $e);
+			if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $e);
+			else throw new Exception($query, 0, $e);
 			return null;
 		}
-
 		return $s;
 	}
 
 	/**
+	 * Prepare PDOStatement. May be formatted as printf
 	 * @param string $query
-	 * @return \PDOStatement|null
+	 * @return \PDOStatement
+	 * @throws Exception
 	 */
 	public function prepare($query)
 	{
+		$a = func_get_args();
+		if (count($a) < 1) return null;
+		$query = array_shift($a);
+		if (count($a) > 0) $query = vsprintf($query, $a);
 		try {
 			$r = $this->_pdo->prepare($this->replaceIdField($this->prefixTable($query)));
 		} catch (\Exception $e) {
-			$this->triggerError($query, array(), $e);
+			if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $e);
+			else throw new Exception($query, 0, $e);
 			return null;
 		}
 		return $r;
 	}
 
 	/**
+	 * Execute SQL query and wrap results with utility class. Second input may only be array of PDO parameters
 	 * @param string $query
 	 * @param array $params (optional)
 	 * @return Result|null
+	 * @throws Exception
 	 */
 	public function query($query, $params = array())
 	{
@@ -576,13 +629,15 @@ class PSHD
 			$s = $this->_pdo->prepare($this->replaceIdField($this->prefixTable($query)));
 			$s->execute($params);
 		} catch (\Exception $e) {
-			$this->triggerError($query, $params, $e);
+			if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $e);
+			else throw new Exception($query, 0, $e, $params);
 			return null;
 		}
 		return new Result($this, $s);
 	}
 
 	/**
+	 * Create utility Where object
 	 * @param string|int|array|Where $clause
 	 * @param array $parameters (optional)
 	 * @return Where
@@ -597,6 +652,7 @@ class PSHD
 	}
 
 	/**
+	 * Check if record exists in table
 	 * @param string $table
 	 * @param array $where
 	 * @param array $parameters
@@ -609,10 +665,12 @@ class PSHD
 	}
 
 	/**
+	 * Insert new record into table, on duplicates may be updated
 	 * @param string $table
 	 * @param array $data
 	 * @param bool $onDuplicateUpdate (optional)
 	 * @return int
+	 * @throws Exception
 	 */
 	public function insert($table, $data, $onDuplicateUpdate = false)
 	{
@@ -620,7 +678,9 @@ class PSHD
 		foreach ($data as $dk => $dv) {
 			if (is_array($dv)) $multi = true;
 			if ((!$multi && is_numeric($dk)) || ($multi && is_numeric(array_keys($dv)[0]))) {
-				$this->triggerError("Passed in data array must be associative!", array(), new \Exception("Passed in data array must be associative!"));
+				$e = new Exception("Passed in data array must be associative!");
+				if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $e);
+				else throw $e;
 				return -1;
 			}
 			break;
@@ -629,11 +689,12 @@ class PSHD
 		$head = array_keys($data[0]);
 		$count = count($data[0]);
 		if ($count < 1) {
-			$this->triggerError("Data array is empty", array(), new \Exception("Data array is empty"));
+			$e = new Exception("Data array is empty!");
+			if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $e);
+			else throw $e;
 			return -1;
 		}
 		$place = "";
-		//$place = ",(" . substr(str_repeat(",?", count($data[0])), 1) . ")";
 		$p = array();
 		$q = " INSERT INTO ";
 		$q .= $this->prefixTable($table);
@@ -659,7 +720,8 @@ class PSHD
 		try {
 			$this->prepare($q)->execute($p);
 		} catch (\Exception $e) {
-			$this->triggerError($q, $p, $e);
+			if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $e);
+			else throw new Exception($q, 0, $e, $p);
 			return -1;
 		}
 		return intval($this->_pdo->lastInsertId());
@@ -673,10 +735,12 @@ class PSHD
 	}
 
 	/**
+	 * Update record in table
 	 * @param string $table
 	 * @param array $data
 	 * @param $where
 	 * @return int|null
+	 * @throws Exception
 	 */
 	public function update($table, $data, $where)
 	{
@@ -700,15 +764,18 @@ class PSHD
 			$r = $this->prepare($q)->execute($p);
 			return $r;
 		} catch (\Exception $e) {
-			$this->triggerError($q, $p, $e);
+			if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $e);
+			else throw new Exception($q, 0, $e, $p);
 		}
 		return null;
 	}
 
 	/**
+	 * Delete record from table
 	 * @param string $table
 	 * @param int|string|Where $where
 	 * @return int|null
+	 * @throws Exception
 	 */
 	public function delete($table, $where)
 	{
@@ -719,7 +786,8 @@ class PSHD
 			$r = $this->prepare($q)->execute($p);
 			return $r;
 		} catch (\Exception $e) {
-			$this->triggerError($q, $p, $e);
+			if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $e);
+			else throw new Exception($q, 0, $e, $p);
 		}
 		return null;
 	}

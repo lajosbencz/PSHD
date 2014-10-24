@@ -1,24 +1,48 @@
 <?php
+/**
+ * PSHD utility wrapper
+ * @example http://pshd.lazos.me/example/ Brief tutorial
+ * @author Lajos Bencz <lazos@lazos.me>
+ */
 
 namespace LajosBencz\PSHD;
 
-
+/**
+ * Utility wrapper for SQL results
+ * Class Result
+ * @package LajosBencz\PSHD
+ */
 class Result
 {
 
+	/**
+	 * @var PSHD
+	 */
 	protected $_pshd = null;
 	/**
 	 * @var \PDOStatement
 	 */
 	protected $_pdoStmnt = null;
+	/**
+	 * @var int
+	 */
 	protected $_colCount = 0;
+	/**
+	 * @var int
+	 */
 	protected $_rowCount = 0;
 
+	/**
+	 * Execute before
+	 */
 	protected function _preProcess()
 	{
 		// override in children
 	}
 
+	/**
+	 * Execute after
+	 */
 	protected function _postProcess()
 	{
 		if ($this->_pdoStmnt) $this->_pdoStmnt->closeCursor();
@@ -37,6 +61,7 @@ class Result
 	}
 
 	/**
+	 * Re-initialize from PDOStatement
 	 * @param \PDOStatement $pdoStmnt
 	 * @return $this
 	 */
@@ -49,6 +74,7 @@ class Result
 	}
 
 	/**
+	 * Get row count from PDOStatement
 	 * @return int|null
 	 */
 	public function rowCount()
@@ -58,6 +84,7 @@ class Result
 	}
 
 	/**
+	 * Fetch cell
 	 * @param int $idx
 	 * @return mixed|null
 	 */
@@ -72,7 +99,8 @@ class Result
 	}
 
 	/**
-	 * @return mixed|null
+	 * Fetch numbered array
+	 * @return array|null
 	 */
 	public function row()
 	{
@@ -84,7 +112,8 @@ class Result
 	}
 
 	/**
-	 * @return mixed|null
+	 * Fetch associative array
+	 * @return array|null
 	 */
 	public function assoc()
 	{
@@ -96,6 +125,7 @@ class Result
 	}
 
 	/**
+	 * Fetch column
 	 * @param int $idx
 	 * @return array
 	 */
@@ -112,6 +142,7 @@ class Result
 	}
 
 	/**
+	 * Fetch table
 	 * @param bool $assoc
 	 * @return array
 	 */

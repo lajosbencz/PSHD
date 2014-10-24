@@ -1,13 +1,22 @@
 <?php
-
+/**
+ * PSHD utility wrapper
+ * @example http://pshd.lazos.me/example/ Brief tutorial
+ * @author Lajos Bencz <lazos@lazos.me>
+ */
 
 namespace LajosBencz\PSHD;
 
-
+/**
+ * Where clauses
+ * Class Where
+ * @package LajosBencz\PSHD
+ */
 class Where
 {
 
 	/**
+	 * Is array associative
 	 * @param $arr
 	 * @return bool
 	 */
@@ -62,6 +71,7 @@ class Where
 	}
 
 	/**
+	 * Set WHERE clause. May begin with OR
 	 * @param $string
 	 * @return $this
 	 */
@@ -72,6 +82,7 @@ class Where
 	}
 
 	/**
+	 * Get WHERE clause
 	 * @return string
 	 */
 	public function getClause()
@@ -80,6 +91,7 @@ class Where
 	}
 
 	/**
+	 * Set PDO parameters
 	 * @param array $prms (optional)
 	 * @return $this
 	 */
@@ -90,6 +102,7 @@ class Where
 	}
 
 	/**
+	 * Add PDO parameter
 	 * @param $prm
 	 * @return $this
 	 */
@@ -100,6 +113,7 @@ class Where
 	}
 
 	/**
+	 * Get PDO parameters
 	 * @return array
 	 */
 	public function getParameters()

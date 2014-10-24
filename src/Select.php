@@ -1,14 +1,26 @@
 <?php
+/**
+ * PSHD utility wrapper
+ * @example http://pshd.lazos.me/example/ Brief tutorial
+ * @author Lajos Bencz <lazos@lazos.me>
+ */
 
 namespace LajosBencz\PSHD;
 
+/**
+ * Chainable SQL selects wrapped with Result
+ * Class Select
+ * @package LajosBencz\PSHD
+ */
 class Select extends Result
 {
-
+	/**
+	 * @var string
+	 */
 	protected static $RGX_ALIAS = "/^([^\\s]+)(\\s+AS)?\\s+([^\\s]+)$/i";
 
 	protected $_fields = array();
-	protected $_from = array();
+	protected $_from = "";
 	protected $_where = array();
 	protected $_filter = array();
 	protected $_groupBy = array();
@@ -26,13 +38,19 @@ class Select extends Result
 	protected $_parameters = array();
 	protected $_run = false;
 
-
+	/**
+	 * Call parent when overridden!
+	 */
 	protected function _preProcess()
 	{
 		parent::_preProcess();
 		$this->run();
 	}
 
+	/**
+	 * Birth of SQL queries
+	 * @throws Exception
+	 */
 	protected function _buildQuery()
 	{
 		$this->_parameters = array();
@@ -58,7 +76,6 @@ class Select extends Result
 				if (strlen($jMode) > 0) if (($jInvert = ($jMode[0] == '_'))) $jMode = substr($jMode, 1);
 				break;
 			}
-
 			$qJoin .= sprintf(" %s JOIN %s AS %s ON %s.%s_%s=%s.%s ",
 				$jMode,
 				$jTable,
@@ -93,7 +110,11 @@ class Select extends Result
 		foreach ($this->_filterWhere as $w) {
 			if (isset($w['where'])) $w = $w['where'];
 			elseif (isset($w['filter'])) $w = $w['filter'];
-			else $this->_pshd->triggerError("Invalid Where data!");
+			else {
+				$e = new Exception("Invalid Where data!");
+				if (is_callable($this->_pshd->getErrorhandler())) call_user_func($this->_pshd->getErrorhandler(), $e);
+				else throw $e;
+			};
 			/* @var $w Where */
 			$c = trim($w->getClause());
 			if (strpos($c, $this->_pshd->getIdField() . " ") === 0 || strpos($c, $this->_pshd->getIdField() . "=") === 0) $c = $this->_from . '.' . $c;
@@ -129,11 +150,22 @@ class Select extends Result
 		$this->_query = $this->_pshd->replaceIdField(trim(sprintf("SELECT %s FROM %s %s %s %s %s %s", $qSelect, $qFrom, $qJoin, $qWhere, $qGroupBy, $qOrderBy, $qLimitOffset)));
 	}
 
+	/**
+	 * Handler of macros
+	 * @param $field
+	 * @param bool $alias
+	 * @throws Exception
+	 */
 	protected function _addJoinAndSub($field, $alias = false)
 	{
 		if (is_object($field)) {
 			if (get_class($field) == __NAMESPACE__ . "\\Select") {
-				if (!$alias) $this->_pshd->triggerError('Alias must be set for sub query!');
+				if (!$alias) {
+					$e = new Exception('Alias must be set for sub query!');
+					if (is_callable($this->_pshd->getErrorHandler())) call_user_func($this->_pshd->getErrorHandler(), $e);
+					else throw $e;
+					return;
+				}
 				$this->_subSelects[$alias] = $field;
 				return;
 			}
@@ -177,33 +209,60 @@ class Select extends Result
 		parent::__construct($pshd);
 	}
 
+	/**
+	 * Get assigned PSHD object
+	 * @return PSHD
+	 */
 	public function getPSHD()
 	{
 		return $this->_pshd;
 	}
 
+	/**
+	 * Set raw SQL query
+	 * @param string $query
+	 * @return $this
+	 */
 	public function setQuery($query)
 	{
 		$this->_query = $query;
 		return $this;
 	}
 
+	/**
+	 * Get raw SQL query
+	 * @return string
+	 */
 	public function getQuery()
 	{
 		return $this->_query;
 	}
 
-	public function setParameters($prms)
+	/**
+	 * Set PDO parameters
+	 * @param array $prms
+	 * @return $this
+	 */
+	public function setParameters($prms = array())
 	{
 		$this->_parameters = $prms;
 		return $this;
 	}
 
+	/**
+	 * Get PDO parameters
+	 * @return array
+	 */
 	public function getParameters()
 	{
 		return $this->_parameters;
 	}
 
+	/**
+	 * Add PDO parameter
+	 * @param mixed $prm
+	 * @return $this
+	 */
 	public function addParameter($prm)
 	{
 		if (is_array($prm)) foreach ($prm as $p) $this->addParameter($p);
@@ -211,13 +270,17 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Get FROM table
+	 * @return string
+	 */
 	public function getFrom()
 	{
 		return $this->_from;
 	}
 
-
 	/**
+	 * Select columns from table
 	 * @param string|array|Select $fields,...
 	 * @return $this
 	 */
@@ -225,7 +288,6 @@ class Select extends Result
 	{
 		if ($fields === null) {
 			$this->_fields = array();
-			//$this->_join = array();
 			$this->_sub = array();
 		} else {
 			$args = func_get_args();
@@ -238,12 +300,26 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Set FROM table
+	 * @param string $table
+	 * @param bool $prefix
+	 * @return $this
+	 */
 	public function from($table, $prefix = true)
 	{
 		$this->_from = $prefix ? $this->_pshd->prefixTable($table) : $table;
 		return $this;
 	}
 
+	/**
+	 * JOIN table
+	 * @param string $table Target table
+	 * @param array $fields Fields to select
+	 * @param string $mode LEFT, INNER, RIGHT
+	 * @param bool $invert Invert column roles at ON clause
+	 * @return $this
+	 */
 	public function join($table, $fields = array('*'), $mode = "", $invert = false)
 	{
 		if ($table === null) {
@@ -257,6 +333,13 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Select sub-table
+	 * @param string $table Target table
+	 * @param array $fields Fields to select
+	 * @param bool $invert Invert column roles at ON clause
+	 * @return $this
+	 */
 	public function sub($table, $fields = array('*'), $invert = false)
 	{
 		if ($table === null) {
@@ -275,6 +358,12 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Append WHERE clause
+	 * @param Where|string $where
+	 * @param array $parameters
+	 * @return $this
+	 */
 	public function where($where, $parameters = array())
 	{
 		if ($where === null) {
@@ -288,6 +377,13 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Append named WHERE clause
+	 * @param $name
+	 * @param null $where
+	 * @param array $parameters
+	 * @return $this
+	 */
 	public function filter($name, $where = null, $parameters = array())
 	{
 		if ($name === null) {
@@ -306,6 +402,11 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Group by column
+	 * @param string $field
+	 * @return $this
+	 */
 	public function groupBy($field)
 	{
 		if ($field === null) {
@@ -316,6 +417,12 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Order by column
+	 * @param $field
+	 * @param string $order
+	 * @return $this
+	 */
 	public function orderBy($field, $order = "ASC")
 	{
 		if ($field === null) {
@@ -347,6 +454,12 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Limit rows
+	 * @param $limit
+	 * @param bool $offset
+	 * @return $this
+	 */
 	public function limit($limit, $offset = false)
 	{
 		$this->_limit = $limit;
@@ -354,6 +467,12 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Offset rows
+	 * @param $offset
+	 * @param bool $limit
+	 * @return $this
+	 */
 	public function offset($offset, $limit = false)
 	{
 		$this->_offset = $offset;
@@ -361,6 +480,12 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Select page
+	 * @param int $page
+	 * @param null $size
+	 * @return $this
+	 */
 	public function page($page = 1, $size = null)
 	{
 		$size = is_int($size) ? $size : $this->_pshd->getDefaultPageLimit();
@@ -368,11 +493,21 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Create literal SQL expression
+	 * @param $expression
+	 * @param array $parameters
+	 * @return Literal
+	 */
 	public function literal($expression, $parameters = array())
 	{
 		return new Literal($expression, $parameters, $this->getPSHD());
 	}
 
+	/**
+	 * Reset state
+	 * @return $this
+	 */
 	public function reset()
 	{
 		$this->_run = false;
@@ -380,6 +515,10 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Build SQL query
+	 * @return $this
+	 */
 	public function build()
 	{
 		$this->reset();
@@ -387,6 +526,12 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Run PDOStatement
+	 * @param bool $force
+	 * @return $this
+	 * @throws Exception
+	 */
 	public function run($force = false)
 	{
 		if (!$this->_run || $force) {
@@ -396,7 +541,8 @@ class Select extends Result
 				$stmnt = $this->_pshd->prepare($this->_query);
 				$stmnt->execute($this->_parameters);
 			} catch (\Exception $e) {
-				$this->_pshd->triggerError($this->_query, $this->_parameters, $e);
+				if(is_callable($this->_pshd->getErrorHandler())) call_user_func($this->_pshd->getErrorHandler(),$e);
+				else throw new Exception($this->_query,0,$e,$this->_parameters);
 				return $this;
 			}
 			parent::init($stmnt);
@@ -405,6 +551,11 @@ class Select extends Result
 		return $this;
 	}
 
+	/**
+	 * Fetch cell
+	 * @param int $idx
+	 * @return mixed|null
+	 */
 	public function cell($idx = 0)
 	{
 		$this->limit(1, 0);
@@ -412,6 +563,10 @@ class Select extends Result
 		return parent::cell($idx);
 	}
 
+	/**
+	 * Fetch numbered array
+	 * @return array|null
+	 */
 	public function row()
 	{
 		$this->limit(1, 0);
@@ -419,6 +574,10 @@ class Select extends Result
 		return parent::row();
 	}
 
+	/**
+	 * Fetch associative array
+	 * @return array|null
+	 */
 	public function assoc()
 	{
 		$this->limit(1, 0);
@@ -427,6 +586,22 @@ class Select extends Result
 		return $d;
 	}
 
+	/**
+	 * Fetch column
+	 * @param int $idx (optional)
+	 * @return array
+	 */
+	public function column($idx = 0)
+	{
+		$this->_preProcess();
+		return parent::column($idx);
+	}
+
+	/**
+	 * Fetch table
+	 * @param bool $assoc
+	 * @return array
+	 */
 	public function table($assoc = true)
 	{
 		$this->_preProcess();
@@ -475,6 +650,12 @@ class Select extends Result
 		return $d;
 	}
 
+	/**
+	 * Count results with COUNT(*).
+	 * New query will be executed!
+	 * @param bool $removeLimitOffset
+	 * @return int
+	 */
 	public function count($removeLimitOffset = false)
 	{
 		$c = clone $this;
@@ -512,17 +693,17 @@ class Select extends Result
 		return $html;
 	}
 
+	/**
+	 * Build an HTML table of the result
+	 * @param bool $style (optional)
+	 * @return string
+	 */
 	public function toHtml($style = true)
 	{
 		$r = $this->_run;
 		$t = $this->run(true)->table();
 		$this->_run = $r;
 		return $this->_toHtml($t, $style);
-	}
-
-	protected function _buildSub(&$data)
-	{
-
 	}
 
 }
