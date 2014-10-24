@@ -681,7 +681,7 @@ class PSHD
 		foreach ($data as $k => $v) {
 			if(is_object($v) && get_class($v)==__NAMESPACE__.'\\Literal') {
 				/** @var Literal $v */
-				$set.= $v->getExpression();
+				$set.= ','.$v->getExpression();
 				foreach($v->getParameters() as $vp) $p[] = $vp;
 			} else {
 				$set .= ", $k=?";
