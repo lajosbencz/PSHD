@@ -657,7 +657,7 @@ class PSHD
 			$q .= " ON DUPLICATE KEY UPDATE " . substr($dup, 1);
 		}
 		foreach ($data as $dv) foreach ($dv as $v) $p[] = $v;
-		$this->execute($q, $p);
+		$this->prepare($q)->execute($p);
 		return intval($this->_pdo->lastInsertId());
 	}
 
@@ -681,7 +681,7 @@ class PSHD
 		foreach ($data as $k => $v) {
 			if(is_object($v) && get_class($v)==__NAMESPACE__.'\\Literal') {
 				/** @var Literal $v */
-				$set.= ','.$v->getExpression();
+				$set.= ", $k=".$v->getExpression();
 				foreach($v->getParameters() as $vp) $p[] = $vp;
 			} else {
 				$set .= ", $k=?";
@@ -692,7 +692,7 @@ class PSHD
 		$whr = $this->where($where);
 		$q = sprintf("UPDATE %s SET %s WHERE %s", $this->prefixTable($table), $set, $whr->getClause());
 		$p = array_merge($p, $whr->getParameters());
-		return $this->execute($q, $p);
+		return $this->prepare($q)->execute($p);
 	}
 
 	/**
@@ -704,7 +704,7 @@ class PSHD
 	{
 		$whr = $this->where($where);
 		$q = sprintf("DELETE FROM %s WHERE %s", $this->prefixTable($table), $whr->getClause());
-		return $this->execute($q, $whr->getParameters());
+		return $this->prepare($q)->execute($whr->getParameters());
 	}
 
 }
