@@ -15,7 +15,7 @@ class Exception extends \Exception
 		if (strlen($message) < 1 && is_object($exception)) {
 			$message = $exception->getMessage();
 			ob_start();
-			predump($exception->getTrace());
+			var_dump($exception->getTrace());
 			$message .= ob_get_clean();
 		}
 		parent::__construct($message, $code, $exception);
