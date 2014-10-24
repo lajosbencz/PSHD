@@ -38,7 +38,7 @@ class Literal
 	}
 
 	/**
-	 * @param string $parameters
+	 * @param array $parameters
 	 */
 	public function setParameters($parameters)
 	{
@@ -46,7 +46,15 @@ class Literal
 	}
 
 	/**
-	 * @return string
+	 * @param mixed $parameter
+	 */
+	public function addParameter($parameter)
+	{
+		$this->_parameters[] = $parameter;
+	}
+
+	/**
+	 * @return array
 	 */
 	public function getParameters()
 	{

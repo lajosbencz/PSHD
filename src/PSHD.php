@@ -629,13 +629,25 @@ class PSHD
 			$this->triggerError("", array(), new \Exception("Data array is empty"));
 			return -1;
 		}
-		$place = ",(" . substr(str_repeat(",?", count($data[0])), 1) . ")";
+		$place = "";
+		//$place = ",(" . substr(str_repeat(",?", count($data[0])), 1) . ")";
 		$p = array();
 		$q = " INSERT INTO ";
 		$q .= $this->prefixTable($table);
 		$q .= ' ( ';
 		$q .= implode(',', $head);
 		$q .= ' )  VALUES ';
+		foreach($data[0] as $dv) {
+			if(is_object($dv) && get_class($dv)==__NAMESPACE__.'\\Literal') {
+				/** @var $dv Literal */
+				$place.= ','.$dv->getExpression();
+				foreach($dv->getParameters() as $dp) $p[] = $dp;
+			} else {
+				$place.= ',?';
+				$p[] = $dv;
+			}
+		}
+		$place = ",(" . $place . ")";
 		$q .= substr(str_repeat($place, count($data)), 1);
 		if ($onDuplicateUpdate) {
 			$dup = "";
@@ -665,8 +677,14 @@ class PSHD
 		$set = "";
 		$p = array();
 		foreach ($data as $k => $v) {
-			$set .= ", $k=?";
-			$p[] = $v;
+			if(is_object($v) && get_class($v)==__NAMESPACE__.'\\Literal') {
+				/** @var Literal $v */
+				$set.= $v->getExpression();
+				foreach($v->getParameters() as $vp) $p[] = $vp;
+			} else {
+				$set .= ", $k=?";
+				$p[] = $v;
+			}
 		}
 		$set = substr($set, 1);
 		$whr = $this->where($where);
