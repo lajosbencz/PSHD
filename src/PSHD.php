@@ -156,10 +156,10 @@ class PSHD
 	 * @param bool $use
 	 * @return $this
 	 */
-	public function setDatabase($database, $use = true)
+	public function setDatabase($database, $use = false)
 	{
-		$this->_database = $database;
-		if ($use) $this->execute("USE %s", $database);
+        $this->_database = $database;
+        if ($use) $this->execute("USE %s", $database);
 		return $this;
 	}
 
