@@ -305,6 +305,7 @@ class Select extends Result
     {
         if ($fields === null) {
             $this->_fields = array();
+            $this->_join = array();
             $this->_sub = array();
         } else {
             $args = func_get_args();
