@@ -127,7 +127,7 @@ class Result
 	/**
 	 * Fetch column
 	 * @param int $idx
-	 * @return array
+	 * @return array|null
 	 */
 	public function column($idx = 0)
 	{
@@ -141,10 +141,27 @@ class Result
 		return $r;
 	}
 
+    /**
+     * @param int $keyIdx
+     * @param int $valueIdx
+     * @return array|null
+     * @throws Exception
+     */
+    public function keyValue($keyIdx=0, $valueIdx=1)
+    {
+        $this->_preProcess();
+        if (!$this->_pdoStmnt) return null;
+        $a = $this->_pdoStmnt->fetchAll(\PDO::FETCH_NUM);
+        if($this->_pdoStmnt->columnCount()<2) throw new Exception("The query for keyValue results must have at least two columns!");
+        $r = array();
+        foreach($a as $v) $r[$v[$keyIdx]] = $v[$valueIdx];
+        return $r;
+    }
+
 	/**
 	 * Fetch table
 	 * @param bool $assoc
-	 * @return array
+	 * @return array|null
 	 */
 	public function table($assoc = true)
 	{
