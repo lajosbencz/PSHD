@@ -94,20 +94,22 @@ class Select extends Result
                 $this->_fields[] = $jTableAlias . ".*";
             } else {
                 foreach ($jv as $jField => $v) {
-                    $jFieldAlias = $jField;
-                    if (preg_match(self::$RGX_ALIAS, trim($jField), $m)) {
-                        $jField = $m[1];
-                        $jFieldAlias = $m[3];
-                    }
-                    $f = $jTableAlias . '.' . $jField;
-                    if ($jField != '*') {
-                        if ($jField == $jFieldAlias) {
-                            $f .= ' ' . $jTableAlias . '_' . $jField;
-                        } else {
-                            $f .= ' ' . $jFieldAlias;
+                    if(strlen($jField)>0) {
+                        $jFieldAlias = $jField;
+                        if (preg_match(self::$RGX_ALIAS, trim($jField), $m)) {
+                            $jField = $m[1];
+                            $jFieldAlias = $m[3];
                         }
+                        $f = $jTableAlias . '.' . $jField;
+                        if ($jField != '*') {
+                            if ($jField == $jFieldAlias) {
+                                $f .= ' ' . $jTableAlias . '_' . $jField;
+                            } else {
+                                $f .= ' ' . $jFieldAlias;
+                            }
+                        }
+                        $this->_fields[] = $f;
                     }
-                    $this->_fields[] = $f;
                 }
             }
         }
@@ -305,7 +307,7 @@ class Select extends Result
     {
         if ($fields === null) {
             $this->_fields = array();
-            $this->_join = array();
+            //$this->_join = array();
             $this->_sub = array();
         } else {
             $args = func_get_args();
