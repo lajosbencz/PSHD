@@ -54,7 +54,7 @@ class Where
 			$isAssoc = self::IsAssoc($clause);
 			if ($isAssoc) {
 				foreach ($clause as $k => $v) {
-					$where .= " AND $k".(is_string($v) && !is_numeric($v)?'LIKE':'=')."?";
+					$where .= " AND $k".(is_string($v) && !is_numeric($v)?' LIKE ':' = ')."?";
 					$parameters[] = $v;
 				}
 			} else {
