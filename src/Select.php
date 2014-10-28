@@ -597,6 +597,19 @@ class Select extends Result
 		return parent::column($idx);
 	}
 
+    /**
+     * Return results as an associative column, key will be the first column of the result and the value the second
+     * @param int $keyIdx
+     * @param int $valueIdx
+     * @return array|null
+     * @throws Exception
+     */
+    public function keyValue($keyIdx=0, $valueIdx=1)
+    {
+        $this->_preProcess();
+        return parent::column($keyIdx,$valueIdx);
+    }
+
 	/**
 	 * Fetch table
 	 * @param bool $assoc
