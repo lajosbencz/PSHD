@@ -518,7 +518,7 @@ class Select extends Result
      */
     public function literal($expression, $parameters = array())
     {
-        return new Literal($expression, $parameters, $this->getPSHD());
+        return $this->getPSHD()->literal($expression, $parameters);
     }
 
     /**

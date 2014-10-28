@@ -588,6 +588,7 @@ class PSHD
 	 */
 	public function literal($expression, $parameters = array(), $pshd = null)
 	{
+        if(!$pshd) $pshd = $this;
 		return new Literal($expression, $parameters, $pshd);
 	}
 
