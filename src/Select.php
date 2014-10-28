@@ -111,7 +111,13 @@ class Select extends Result
                 }
             }
         }
-        $qSelect .= implode(',', $this->_fields);
+        foreach($this->_fields as $fk=>$fv) {
+            $qSelect.= ','.$fv;
+            if(is_object($fv) && get_class($fv)==__NAMESPACE__."\\Literal") {
+                foreach($fv->getParameters() as $fvp) $this->addParameter($fvp);
+            }
+        }
+        $qSelect = substr($qSelect,1);
         $qSelect = preg_replace("/(^|\\,)\\./", "\$1" . $qFrom . ".", $qSelect);
         foreach ($this->_filterWhere as $w) {
             if (isset($w['where'])) $w = $w['where'];
@@ -175,7 +181,12 @@ class Select extends Result
                 $this->_subSelects[$alias] = $field;
                 return;
             }
+            else if (get_class($field) == __NAMESPACE__ . "\\Literal") {
+                $this->_fields[] = $field;
+                return;
+            }
         }
+        $field = (string)$field;
         $fc = $field[0];
         $invert = (strlen($field) > 1 && $fc === $field[1]) ? 1 : 0;
         switch ($fc) {
