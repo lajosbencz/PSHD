@@ -73,10 +73,12 @@ class Literal
 	/**
 	 * Add parameter
 	 * @param mixed $parameter
+     * @return $this
 	 */
 	public function addParameter($parameter)
 	{
 		$this->_parameters[] = $parameter;
+        return $this;
 	}
 
 	/**
