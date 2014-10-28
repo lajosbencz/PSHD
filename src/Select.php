@@ -204,7 +204,7 @@ class Select extends Result
                 elseif ($fc == $this->_pshd->getInnerJoinChar()) $m = 'INNER';
                 elseif ($fc == $this->_pshd->getRightJoinChar()) $m = 'RIGHT';
                 if (count($field) > 1) $this->join($field[0], explode(',', $field[1]), $m, $invert);
-                else $this->join($field[0], array('*'), $m, $invert);
+                else $this->join($field[0], array(''), $m, $invert);
                 break;
 
             case $this->_pshd->getSubSelectChar():
