@@ -541,8 +541,7 @@ class Select extends Result
 				$stmnt = $this->_pshd->prepare($this->_query);
 				$stmnt->execute($this->_parameters);
 			} catch (\Exception $e) {
-				if(is_callable($this->_pshd->getErrorHandler())) call_user_func($this->_pshd->getErrorHandler(),$e);
-				else throw new Exception($this->_query,0,$e,$this->_parameters);
+                $this->_pshd->handleError($this->_query,$this->_parameters,$e);
 				return $this;
 			}
 			parent::init($stmnt);
