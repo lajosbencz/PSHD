@@ -113,9 +113,10 @@ class Select extends Result
                 }
             }
         }
-        foreach($this->_fields as $fk=>$fv) {
+        foreach($this->_fields as $fv) {
             $qSelect.= ','.$fv;
             if(is_object($fv) && get_class($fv)==__NAMESPACE__."\\Literal") {
+                /** @var Literal $fv */
                 foreach($fv->getParameters() as $fvp) $this->addParameter($fvp);
             }
         }
@@ -626,7 +627,7 @@ class Select extends Result
     public function keyValue($keyIdx=0, $valueIdx=1)
     {
         $this->_preProcess();
-        return parent::column($keyIdx,$valueIdx);
+        return parent::keyValue($keyIdx,$valueIdx);
     }
 
     /**
