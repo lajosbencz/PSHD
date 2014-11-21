@@ -120,25 +120,25 @@ class PSHD
 	}
 
 
-    /**
-     * @param \Exception|string $message
-     * @param array $parameters (optonal)
-     * @param \Exception $exception (optional)
-     * @throws Exception
-     * @throws \Exception
-     */
-    public function handleError($message,$parameters=array(),$exception=null)
-    {
-        if(is_object($message)) {
-            $exception = $message;
-            $message = $exception->getMessage();
-        } else {
-            if(!is_object($exception)) $exception = new Exception($message,0);
-            else if(strlen($message)<1) $message = $exception->getMessage();
-        }
-        if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $message, $exception->getCode(), $exception, $parameters);
-        else throw $exception;
-    }
+	/**
+	 * @param \Exception|string $message
+	 * @param array $parameters (optonal)
+	 * @param \Exception $exception (optional)
+	 * @throws Exception
+	 * @throws \Exception
+	 */
+	public function handleError($message,$parameters=array(),$exception=null)
+	{
+		if(is_object($message)) {
+			$exception = $message;
+			$message = $exception->getMessage();
+		} else {
+			if(!is_object($exception)) $exception = new Exception($message,0);
+			else if(strlen($message)<1) $message = $exception->getMessage();
+		}
+		if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $message, $exception->getCode(), $exception, $parameters);
+		else throw $exception;
+	}
 
 
 	/**
@@ -179,8 +179,8 @@ class PSHD
 	 */
 	public function setDatabase($database, $use = false)
 	{
-        $this->_database = $database;
-        if ($use) $this->execute("USE %s", $database);
+		$this->_database = $database;
+		if ($use) $this->execute("USE %s", $database);
 		return $this;
 	}
 
@@ -537,7 +537,7 @@ class PSHD
 		try {
 			$this->_pdo = new \PDO($dsn, $user, $password, $attr);
 		} catch (\Exception $pe) {
-            $this->handleError($pe);
+			$this->handleError($pe);
 		}
 		if (strlen($this->_database) > 0) $this->execute("USE " . $this->_database);
 		if (strlen($this->_charset) > 0) $this->execute("SET NAMES " . $this->_charset);
@@ -588,7 +588,7 @@ class PSHD
 	 */
 	public function literal($expression, $parameters = array(), $pshd = null)
 	{
-        if(!$pshd) $pshd = $this;
+		if(!$pshd) $pshd = $this;
 		return new Literal($expression, $parameters, $pshd);
 	}
 
@@ -630,7 +630,7 @@ class PSHD
 		try {
 			$r = $this->_pdo->prepare($this->replaceIdField($this->prefixTable($query)));
 		} catch (\Exception $e) {
-            $this->handleError($query,array(),$e);
+			$this->handleError($query,array(),$e);
 			return null;
 		}
 		return $r;
@@ -649,7 +649,7 @@ class PSHD
 			$s = $this->_pdo->prepare($this->replaceIdField($this->prefixTable($query)));
 			$s->execute($params);
 		} catch (\Exception $e) {
-            $this->handleError($query,$params,$e);
+			$this->handleError($query,$params,$e);
 			return null;
 		}
 		return new Result($this, $s);
@@ -693,6 +693,7 @@ class PSHD
 	 */
 	public function insert($table, $data, $onDuplicateUpdate = false)
 	{
+		$table = $this->prefixTable($table);
 		$multi = false;
 		foreach ($data as $dk => $dv) {
 			if (is_array($dv)) $multi = true;
@@ -706,6 +707,10 @@ class PSHD
 		}
 		if (!$multi) $data = array($data);
 		$head = array_keys($data[0]);
+		foreach($head as &$h) {
+			if(strpos($h,$table.'.')===0) continue;
+			$h = $table.'.'.$h;
+		}
 		$count = count($data[0]);
 		if ($count < 1) {
 			$e = new Exception("Data array is empty!");
@@ -716,7 +721,7 @@ class PSHD
 		$place = "";
 		$p = array();
 		$q = " INSERT INTO ";
-		$q .= $this->prefixTable($table);
+		$q .= $table;
 		$q .= ' ( ';
 		$q .= implode(',', $head);
 		$q .= ' )  VALUES ';
@@ -739,7 +744,7 @@ class PSHD
 		try {
 			$this->prepare($q)->execute($p);
 		} catch (\Exception $e) {
-            $this->handleError($q,$p,$e);
+			$this->handleError($q,$p,$e);
 			return -1;
 		}
 		return intval($this->_pdo->lastInsertId());
@@ -782,7 +787,7 @@ class PSHD
 			$r = $this->prepare($q)->execute($p);
 			return $r;
 		} catch (\Exception $e) {
-            $this->handleError($q,$p,$e);
+			$this->handleError($q,$p,$e);
 		}
 		return null;
 	}
@@ -803,7 +808,7 @@ class PSHD
 			$r = $this->prepare($q)->execute($p);
 			return $r;
 		} catch (\Exception $e) {
-            $this->handleError($q,$p,$e);
+			$this->handleError($q,$p,$e);
 		}
 		return null;
 	}
