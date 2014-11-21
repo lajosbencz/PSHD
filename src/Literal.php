@@ -28,10 +28,12 @@ class Literal
 	/**
 	 * Set literal SQL expression
 	 * @param string $expression
+     * @return $this
 	 */
 	public function setExpression($expression)
 	{
 		$this->_expression = $expression;
+        return $this;
 	}
 
 	/**
@@ -51,10 +53,12 @@ class Literal
 	/**
 	 * Set parameters
 	 * @param array $parameters
+     * @return $this
 	 */
 	public function setParameters($parameters)
 	{
 		$this->_parameters = $parameters;
+        return $this;
 	}
 
 	/**
@@ -69,10 +73,12 @@ class Literal
 	/**
 	 * Add parameter
 	 * @param mixed $parameter
+     * @return $this
 	 */
 	public function addParameter($parameter)
 	{
 		$this->_parameters[] = $parameter;
+        return $this;
 	}
 
 	/**
