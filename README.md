@@ -14,12 +14,39 @@ require_once PATH_TO_COMPOSER_VENDOR.'/autoload.php';
 
 use Lazos\PSHD;
 
+// init with dsn
+$db = new PSHD(array(
+	'dsn' => 'mysql:host=localhost;port=3306;dbname=testdb;charset=utf8',
+//	'user' => 'user',
+//	'password' => 'pwd'
+);
+
+// init from parameters
 $db = new PSHD(array(
 	'driver' => 'mysql',
-	'host' => 'localhost'
-//	'database' => 'dbname'
-//	'user' => 'uname'
+	'host' => 'localhost',
+//	'port' => 3306,
+//	'database' => 'testdb',
+//	'charset' => 'utf8'
+//	'user' => 'user',
 //	'password' => 'pwd'
+);
+
+// other options
+$db = new PSHD(array(
+	'driver' => 'mysql',
+	'host' => 'localhost',
+//	'idField' => 'id',
+//	'idPlace' => '{I}',
+//	'tablePrefix' => '',
+//	'tablePrefixPlace' => '{P}',
+//	'defaultLimit' => 1000000,
+//	'defaultPageLimit' => 10,
+//	'joinChar' => '|',
+//	'leftJoinChar' => '<',
+//	'innerJoinChar' => '+',
+//	'rightJoinChar' => '>',
+//	'subSelectChar' => '^'
 ));
 ```
 
@@ -71,3 +98,47 @@ $bool = $db->exists($table, array(
 ));
 ```
 
+#### Select
+
+Creating a select
+```php
+$select = $db->select('col1,col2');
+$select = $db->select('col1','col2');
+$select = $db->select(array('col1','col2'));
+
+$select->from($table);
+
+$select->where("id = 42");
+$select->where("id = ?",42);
+$select->where("id = ?",array(42));
+$select->where(array('id'=>42));
+$select->where(42); // integer parameters will be converted to array($idField => $parameter)
+
+$select->orderBy('when','DESC');
+$select->orderBy('when',0);
+$select->orderBy('when','-');
+$select->orderBy('when','>');
+
+$select->limit(10)->offset(1);
+$select->limit(10,1);
+$select->offset(1,10);
+
+$select->page($pageNum,$itemsPerPage);
+```
+
+Results of a select
+```php
+$mixed = $select->cell(); // first column of first row in result set
+$mixed = $select->cell(4); // fifth column of first row in result set
+
+$array = $select->row(); // first row of result set, numeric indexes
+
+$array = $select->assoc(); // first row of result set, associative indexes
+
+$array = $select->column(); // first column of result set
+$array = $select->column(4); // fifth column of result set
+
+$array = $select->table(); // complete result set
+
+$int = $select->count(); // COUNT(*)
+```
