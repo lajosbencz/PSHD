@@ -692,8 +692,12 @@ class Select extends Result
     public function count($removeLimitOffset = false)
     {
         $c = clone $this;
-        if ($removeLimitOffset) $c->limit(null, null);
-        return count($c->column());
+		$c->select('1 PSHD_COUNT_TABLE_HELP');
+		if ($removeLimitOffset) $c->limit(null, null);
+		$c->build();
+		$s = $this->getPSHD()->prepare($c->getQuery());
+		$s->execute($c->getParameters());
+		return $s->rowCount();
     }
 
     protected function _toHtml($t, $style = true)

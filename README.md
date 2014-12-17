@@ -12,7 +12,7 @@ Currently supported drivers:
 ```php
 require_once PATH_TO_COMPOSER_VENDOR.'/autoload.php';
 
-use Lazos\PSHD;
+use Lazos\PSHD\PSHD;
 
 // init with dsn
 $db = new PSHD(array(
