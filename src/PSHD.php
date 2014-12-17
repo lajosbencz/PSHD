@@ -829,8 +829,9 @@ class PSHD
 		$q = sprintf("DELETE FROM %s WHERE %s", $this->prefixTable($table), $whr->getClause());
 		$p = $whr->getParameters();
 		try {
-			$r = $this->prepare($q)->execute($p);
-			return $r;
+			$r = $this->prepare($q);
+			$r->execute($p);
+			return $r->rowCount();
 		} catch (\Exception $e) {
 			$this->handleError($q,$p,$e);
 		}
