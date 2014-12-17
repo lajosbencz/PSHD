@@ -129,14 +129,26 @@ class PSHD
 	 */
 	public function handleError($message,$parameters=array(),$exception=null)
 	{
-		if(is_object($message)) {
+		$isParent = function($class,$what){
+			if(is_object($class)) {
+				$class = new \ReflectionClass($class);
+				while($parent = $class->getParentClass()){
+					if($what==$parent->getName()) return true;
+					$class = $parent;
+				}
+			}
+			return false;
+		};
+		if($isParent($message,'Exception')) {
+			/** @var \Exception $message */
 			$exception = $message;
 			$message = $exception->getMessage();
-		} else {
-			if(!is_object($exception)) $exception = new Exception($message,0);
-			else if(strlen($message)<1) $message = $exception->getMessage();
+		} elseif($isParent($message,'PDOStatement')) {
+			/** @var \PDOStatement $message */
+			$message = $message->queryString;
 		}
-		if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $message, $exception->getCode(), $exception, $parameters);
+		if(!is_object($exception)) $exception = new Exception($message,0);
+		if (is_callable($this->_errorHandler)) call_user_func($this->_errorHandler, $message, $parameters, $exception);
 		else throw $exception;
 	}
 
@@ -680,7 +692,9 @@ class PSHD
 	public function exists($table, $where, $parameters = array())
 	{
 		$w = $this->where($where, $parameters);
-		return $this->select()->from($table)->where($w)->count() > 0;
+		$q = $this->select()->from($table)->where($w);
+		$n = $q->count();
+		return $n > 0;
 	}
 
 	/**
@@ -762,11 +776,14 @@ class PSHD
 	 * @param string $table
 	 * @param array $data
 	 * @param $where
+	 * @param $forceInsert
 	 * @return int|null
 	 * @throws Exception
 	 */
-	public function update($table, $data, $where)
+	public function update($table, $data, $where, $forceInsert=false)
 	{
+		if(is_int($where)) $where = array($this->_idField=>$where);
+		if($forceInsert && !is_array($where)) throw new Exception('When using with force insert, $where parameter should be an array!',0,null,array('table'=>$table,'data'=>$data,'where'=>$where));
 		$set = "";
 		$p = array();
 		foreach ($data as $k => $v) {
@@ -783,11 +800,18 @@ class PSHD
 		$whr = $this->where($where);
 		$q = sprintf("UPDATE %s SET %s WHERE %s", $this->prefixTable($table), $set, $whr->getClause());
 		$p = array_merge($p, $whr->getParameters());
-		try {
-			$r = $this->prepare($q)->execute($p);
-			return $r;
-		} catch (\Exception $e) {
-			$this->handleError($q,$p,$e);
+		if(!$this->exists($table,$where) && $forceInsert) {
+			$this->insert($table,array_merge($where,$data));
+			return 0;
+		}
+		else {
+			try {
+				$c = $this->prepare($q);
+				$c->execute($p);
+				return $c->rowCount();
+			} catch (\Exception $e) {
+				$this->handleError($q,$p,$e);
+			}
 		}
 		return null;
 	}
