@@ -5,12 +5,12 @@
  * @author Lajos Bencz <lazos@lazos.me>
  */
 
-namespace LajosBencz\PSHD;
+namespace Lazos\PSHD;
 
 /**
  * Chainable SQL selects wrapped with Result
  * Class Select
- * @package LajosBencz\PSHD
+ * @package Lazos\PSHD
  */
 class Select extends Result
 {

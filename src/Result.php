@@ -5,12 +5,12 @@
  * @author Lajos Bencz <lazos@lazos.me>
  */
 
-namespace LajosBencz\PSHD;
+namespace Lazos\PSHD;
 
 /**
  * Utility wrapper for SQL results
  * Class Result
- * @package LajosBencz\PSHD
+ * @package Lazos\PSHD
  */
 class Result
 {

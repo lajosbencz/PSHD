@@ -5,12 +5,12 @@
  * @author Lajos Bencz <lazos@lazos.me>
  */
 
-namespace LajosBencz\PSHD;
+namespace Lazos\PSHD;
 
 /**
  * Where clauses
  * Class Where
- * @package LajosBencz\PSHD
+ * @package Lazos\PSHD
  */
 class Where
 {

@@ -5,12 +5,12 @@
  * @author Lajos Bencz <lazos@lazos.me>
  */
 
-namespace LajosBencz\PSHD;
+namespace Lazos\PSHD;
 
 /**
  * Provides support for literal SQL values, may also be expanded with parameters
  * Class Literal
- * @package LajosBencz\PSHD
+ * @package Lazos\PSHD
  */
 class Literal
 {

@@ -1,4 +1,17 @@
 PSHD
 ====
+PDO Short Hand Database
+-----------------------
 
-Php Short Hand Database
+An OOP attempt to simplify common SQL commands.
+
+### Instance
+````php
+
+````
+
+### Basics
+````php
+
+````
+
