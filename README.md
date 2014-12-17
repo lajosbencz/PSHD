@@ -31,23 +31,6 @@ $db = new PSHD(array(
 //	'user' => 'user',
 //	'password' => 'pwd'
 );
-
-// other options
-$db = new PSHD(array(
-	'driver' => 'mysql',
-	'host' => 'localhost',
-//	'idField' => 'id',
-//	'idPlace' => '{I}',
-//	'tablePrefix' => '',
-//	'tablePrefixPlace' => '{P}',
-//	'defaultLimit' => 1000000,
-//	'defaultPageLimit' => 10,
-//	'joinChar' => '|',
-//	'leftJoinChar' => '<',
-//	'innerJoinChar' => '+',
-//	'rightJoinChar' => '>',
-//	'subSelectChar' => '^'
-));
 ```
 
 #### Exception handling
