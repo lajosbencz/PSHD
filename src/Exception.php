@@ -5,12 +5,12 @@
  * @author Lajos Bencz <lazos@lazos.me>
  */
 
-namespace Lazos\PSHD;
+namespace PSHD;
 
 /**
  * Exception thrown by PSHD methods
  * Class Exception
- * @package Lazos\PSHD
+ * @package PSHD
  */
 class Exception extends \Exception
 {

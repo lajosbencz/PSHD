@@ -5,12 +5,12 @@
  * @author Lajos Bencz <lazos@lazos.me>
  */
 
-namespace Lazos\PSHD;
+namespace PSHD;
 
 /**
  * PDO utility wrapper for short hand operations
  * Class PSHD
- * @package Lazos\PSHD
+ * @package PSHD
  */
 class PSHD
 {

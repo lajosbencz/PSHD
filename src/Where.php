@@ -1,16 +1,16 @@
 <?php
 /**
  * PSHD utility wrapper
- * @example http://pshd.lazos.me/example/ Brief tutorial
+ * @example http://pshd.lazos.me/example/
  * @author Lajos Bencz <lazos@lazos.me>
  */
 
-namespace Lazos\PSHD;
+namespace PSHD;
 
 /**
  * Where clauses
  * Class Where
- * @package Lazos\PSHD
+ * @package PSHD
  */
 class Where
 {
