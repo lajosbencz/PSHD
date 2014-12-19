@@ -584,7 +584,7 @@ class Select
 	 */
 	public function assoc()
 	{
-		return $this->result()->row();
+		return $this->result()->assoc();
 	}
 
 	/**
