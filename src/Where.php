@@ -8,12 +8,11 @@
 namespace PSHD;
 
 /**
- * Where clauses
+ * Where clause with parameters
  * Class Where
  * @package PSHD
  */
-class Where
-{
+class Where {
 
 	/**
 	 * Is array associative
@@ -25,17 +24,11 @@ class Where
 		return array_keys($arr) !== range(0, count($arr) - 1);
 	}
 
-	/**
-	 * @var PSHD
-	 */
+	/** @var PSHD */
 	protected $_pshd = null;
-	/**
-	 * @var string|int|array
-	 */
+	/** @var string|int|array */
 	protected $_clause = null;
-	/**
-	 * @var array
-	 */
+	/** @var array */
 	protected $_parameters = array();
 
 	/**
@@ -47,24 +40,30 @@ class Where
 	{
 		$this->_pshd = $pshd;
 		if (isset($parameters) && !is_array($parameters)) $parameters = array($parameters);
-		if (is_numeric($clause)) $clause = array($this->_pshd->getIdField() => $clause);
-		if (is_array($clause)) {
-			$where = "";
-			$parameters = array();
-			$isAssoc = self::IsAssoc($clause);
-			if ($isAssoc) {
-				foreach ($clause as $k => $v) {
-					$where .= " AND $k".(is_string($v) && !is_numeric($v)?' LIKE ':' = ')."?";
-					$parameters[] = $v;
+		if(is_object($clause) && get_class($clause)==__NAMESPACE__.'\\Where') {
+			/** @var Where $clause */
+			$parameters = count($parameters)>0?$parameters:$clause->getParameters();
+			$clause = $clause->getClause();
+		} else {
+			if (is_numeric($clause) || (is_string($clause) && preg_match("/^[a-z0-9\\-\\_\\+]+$/i",$clause) && func_num_args()==2)) $clause = array($this->_pshd->idField => $clause);
+			if (is_array($clause)) {
+				$where = "";
+				$parameters = array();
+				$isAssoc = self::IsAssoc($clause);
+				if ($isAssoc) {
+					foreach ($clause as $k => $v) {
+						$where .= " AND $k".(is_string($v) && !is_numeric($v)?' LIKE ':' = ')."?";
+						$parameters[] = $v;
+					}
+				} else {
+					foreach ($clause as $v) {
+						$w = new Where($pshd, $v);
+						$where .= " AND " . $w->getClause();
+						$parameters[] = $w->getParameters();
+					}
 				}
-			} else {
-				foreach ($clause as $v) {
-					$w = new Where($pshd, $v);
-					$where .= " AND " . $w->getClause();
-					$parameters[] = $w->getParameters();
-				}
+				$clause = substr($where, 4);
 			}
-			$clause = substr($where, 4);
 		}
 		$this->setClause($clause);
 		$this->setParameters($parameters);

@@ -1,7 +1,7 @@
 <?php
 /**
  * PSHD utility wrapper
- * @example http://pshd.lazos.me/example/ Brief tutorial
+ * @example http://pshd.lazos.me/example/
  * @author Lajos Bencz <lazos@lazos.me>
  */
 
@@ -60,5 +60,4 @@ class Exception extends \Exception
 		}
 		return $s;
 	}
-
 }
