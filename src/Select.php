@@ -341,7 +341,8 @@ class Select
 		if ($table === null) {
 			$this->_join = array();
 		} elseif(is_string($table) && (preg_match("/\\sON\\s/i",$table) || (func_num_args()==1 && preg_match("/^[\\S]+$/",trim($table))))) {
-			if(!preg_match("/^((LEFT|INNER|RIGHT)[\\s]*)?JOIN/i",trim($table))) $this->_joinCustom.= " JOIN ".$table." ";
+			if(!preg_match("/^((LEFT|INNER|RIGHT)[\\s]*)?JOIN/i",trim($table))) $table = "JOIN ".$table."";
+			$this->_joinCustom.= " ".$table." ";
 		} else {
 			if (!is_array($fields)) $fields = array($fields);
 			if (!is_array($this->_join)) $this->_join = array();
