@@ -566,9 +566,7 @@ class Select
 	 */
 	public function cell($idx = 0)
 	{
-		$b = $this->_limit!==1;
-		$this->limit(1);
-		return $this->result($b)->cell($idx);
+		return $this->result()->cell($idx);
 	}
 
 	/**
@@ -577,9 +575,7 @@ class Select
 	 */
 	public function row()
 	{
-		$b = $this->_limit!==1;
-		$this->limit(1);
-		return $this->result($b)->row();
+		return $this->result()->row();
 	}
 
 	/**
@@ -588,9 +584,7 @@ class Select
 	 */
 	public function assoc()
 	{
-		$b = $this->_limit!==1;
-		$this->limit(1);
-		return $this->result($b)->row();
+		return $this->result()->row();
 	}
 
 	/**
