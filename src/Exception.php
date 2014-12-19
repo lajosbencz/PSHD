@@ -1,16 +1,16 @@
 <?php
 /**
  * PSHD utility wrapper
- * @example http://pshd.lazos.me/example/ Brief tutorial
+ * @example http://pshd.lazos.me/example/
  * @author Lajos Bencz <lazos@lazos.me>
  */
 
-namespace LajosBencz\PSHD;
+namespace PSHD;
 
 /**
  * Exception thrown by PSHD methods
  * Class Exception
- * @package LajosBencz\PSHD
+ * @package PSHD
  */
 class Exception extends \Exception
 {
@@ -60,5 +60,4 @@ class Exception extends \Exception
 		}
 		return $s;
 	}
-
 }

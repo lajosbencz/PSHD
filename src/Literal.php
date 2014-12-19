@@ -1,24 +1,19 @@
 <?php
 /**
  * PSHD utility wrapper
- * @example http://pshd.lazos.me/example/ Brief tutorial
+ * @example http://pshd.lazos.me/example/
  * @author Lajos Bencz <lazos@lazos.me>
  */
 
-namespace LajosBencz\PSHD;
+namespace PSHD;
 
 /**
- * Provides support for literal SQL values, may also be expanded with parameters
+ * Wrapper for literal expressions with parameters
  * Class Literal
- * @package LajosBencz\PSHD
+ * @package PSHD
  */
 class Literal
 {
-
-	/**
-	 * @var PSHD
-	 */
-	protected $_pshd = null;
 
 	/**
 	 * @var string
@@ -28,12 +23,12 @@ class Literal
 	/**
 	 * Set literal SQL expression
 	 * @param string $expression
-     * @return $this
+	 * @return $this
 	 */
 	public function setExpression($expression)
 	{
 		$this->_expression = $expression;
-        return $this;
+		return $this;
 	}
 
 	/**
@@ -53,12 +48,12 @@ class Literal
 	/**
 	 * Set parameters
 	 * @param array $parameters
-     * @return $this
+	 * @return $this
 	 */
 	public function setParameters($parameters)
 	{
 		$this->_parameters = $parameters;
-        return $this;
+		return $this;
 	}
 
 	/**
@@ -73,22 +68,20 @@ class Literal
 	/**
 	 * Add parameter
 	 * @param mixed $parameter
-     * @return $this
+	 * @return $this
 	 */
 	public function addParameter($parameter)
 	{
 		$this->_parameters[] = $parameter;
-        return $this;
+		return $this;
 	}
 
 	/**
 	 * @param string $expression Literal SQL expression
 	 * @param array $parameters (optional) Add parameters
-	 * @param PSHD $pshd (optional)
 	 */
-	public function __construct($expression, $parameters = array(), $pshd = null)
+	public function __construct($expression, $parameters = array())
 	{
-		if (is_object($pshd)) if (get_class($pshd) == __NAMESPACE__ . '\\PSHD') $this->_pshd = $pshd;
 		if ($expression) $this->setExpression($expression);
 		$this->setParameters($parameters);
 	}
@@ -104,14 +97,10 @@ class Literal
 		$s = (is_object($var) && get_class($var) == __NAMESPACE__ . '\\Select');
 		foreach ($this->_parameters as $p) {
 			if ($a) {
-				/**
-				 * @var array $var
-				 */
+				/** @var array $var */
 				array_push($var, $p);
 			} elseif ($s) {
-				/**
-				 * @var Select $var
-				 */
+				/** @var Select $var */
 				$var->addParameter($p);
 			}
 		}
