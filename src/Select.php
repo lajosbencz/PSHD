@@ -30,6 +30,7 @@ class Select
 	protected $_limit = null;
 	protected $_offset = null;
 	protected $_filterWhere = array();
+	protected $_filterEnabled = array();
 
 	protected $_join = array();
 	protected $_joinCustom = "";
@@ -118,9 +119,12 @@ class Select
 		$qSelect = substr($qSelect,1);
 		$qSelect = preg_replace("/(^|\\,)\\./", "\$1" . $qFrom . ".", $qSelect);
 		$qJoin.= $this->_joinCustom;
-		foreach ($this->_filterWhere as $w) {
+		foreach ($this->_filterWhere as $n=>$w) {
 			if (isset($w['where'])) $w = $w['where'];
-			elseif (isset($w['filter'])) $w = $w['filter'];
+			elseif (isset($w['filter'])) {
+				if(!$this->_filterEnabled[$n]) continue;
+				$w = $w['filter'];
+			}
 			else $this->_pshd->exception(new Exception("Invalid WHERE data!"));
 			/* @var $w Where */
 			$c = trim($w->getClause());
@@ -406,9 +410,13 @@ class Select
 				unset($this->_filterWhere[$k]);
 			}
 		} else {
-			if ($where == null) {
+			if ($where === null) {
 				$this->_filterWhere[$name] = null;
 				unset($this->_filterWhere[$name]);
+			} elseif($where===false) {
+				$this->_filterEnabled[$name] = false;
+			} elseif($where===true) {
+				$this->_filterEnabled[$name] = true;
 			} else {
 				$this->_filterWhere[$name] = array('filter' => $this->_pshd->where($where, $parameters));
 			}
