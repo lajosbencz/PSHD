@@ -260,7 +260,7 @@ class PSHD {
 			if(is_array($a[count($a)-1])) $parameters = array_pop($a);
 			if(count($a)>0) $format = vsprintf($format,$a);
 		}
-		return new Result($format,$parameters);
+		return new Result($this,$format,$parameters);
 	}
 
 	public function insert($table, $data, $updateIfDuplicate=false) {
