@@ -327,9 +327,10 @@ class PSHD {
 	}
 
 	public function update($table, $data, $where, $insertIfNonExisting=false) {
+		$eligibleForce = is_array($where);
 		$where = new Where($this, $where);
 		if(is_int($where)) $where = array($this->idField=>$where);
-		if($insertIfNonExisting && !is_array($where)) throw new Exception('When using with force insert, $where parameter should be an array!',0,null,array('table'=>$table,'data'=>$data,'where'=>$where));
+		if($insertIfNonExisting && !$eligibleForce) throw new Exception('When using with force insert, $where parameter should be an array!',0,null,array('table'=>$table,'data'=>$data,'where'=>$where));
 		$set = "";
 		$p = array();
 		foreach ($data as $k => $v) {
