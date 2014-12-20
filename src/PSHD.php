@@ -316,23 +316,6 @@ class PSHD {
 	}
 
 	/**
-	 * Prepares an SQL statement.
-	 * @param string $query
-	 * @return Statement
-	 */
-	public function statement($query) {
-		$query = $this->placeHolders($query);
-		$this->_queryCallback($query,'prepare');
-		try {
-			$r = $this->_pdo->prepare($query);
-			return new Statement($this, $r);
-		} catch(\Exception $e) {
-			$this->exception($e);
-		}
-		return null;
-	}
-
-	/**
 	 * Executes SQL command with parameters.
 	 * @param string $query
 	 * @param array $parameters
@@ -349,6 +332,23 @@ class PSHD {
 			$this->exception($e);
 		}
 		return false;
+	}
+
+	/**
+	 * Prepares an SQL statement.
+	 * @param string $query
+	 * @return Statement
+	 */
+	public function statement($query) {
+		$query = $this->placeHolders($query);
+		$this->_queryCallback($query,'prepare');
+		try {
+			$r = $this->_pdo->prepare($query);
+			return new Statement($this, $r);
+		} catch(\Exception $e) {
+			$this->exception($e);
+		}
+		return null;
 	}
 
 	/**
