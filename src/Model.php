@@ -186,13 +186,8 @@ abstract class Model implements \ArrayAccess {
 		return $this->_id;
 	}
 
-	public function validate() {
-		// TODO VALIDATION SCHEME
-		return true;
-	}
-
 	public function push() {
-		if(!$this->_id && $this->validate()) $this->_pshd->exception(new Exception('Id was not set for this instance, cannot push to database'));
+		if(!$this->_id) $this->_pshd->exception(new Exception('Id was not set for this instance, cannot push to database'));
 		$d = array();
 		foreach($this->getPullPushFields() as $field) $d[$field] = $this->_container[$field];
 		$this->_pshd->update($this->getTable(),$d,$this->_id);
@@ -200,7 +195,7 @@ abstract class Model implements \ArrayAccess {
 	}
 
 	public function pull() {
-		if(!$this->_id && $this->validate()) $this->_pshd->exception(new Exception('Id was not set for this instance, cannot pull from database'));
+		if(!$this->_id) $this->_pshd->exception(new Exception('Id was not set for this instance, cannot pull from database'));
 		$this->_container = array_merge($this->_container,$this->_pshd->select($this->getPullPushFields())->from($this->getTable())->where($this->getId())->assoc());
 		return $this;
 	}

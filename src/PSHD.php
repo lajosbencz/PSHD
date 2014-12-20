@@ -443,7 +443,7 @@ class PSHD {
 			$q .= " ON DUPLICATE KEY UPDATE " . substr($dup, 1);
 		}
 		foreach ($data as $dv) foreach ($dv as $v) $p[] = $v;
-		$this->statement($q,$p);
+		$this->query($q,$p);
 		return intval($this->_pdo->lastInsertId());
 	}
 
@@ -471,7 +471,7 @@ class PSHD {
 		$eligibleForce = is_array($where);
 		$where = new Where($this, $where);
 		if(is_int($where)) $where = array($this->idField=>$where);
-		if($insertIfNonExisting && !$eligibleForce) throw new Exception('When using with force insert, $where parameter should be an array!',0,null,array('table'=>$table,'data'=>$data,'where'=>$where));
+		if($insertIfNonExisting && !$eligibleForce) throw new Exception('When using with force insert, $where parameter must be an array!',0,null,array('table'=>$table,'data'=>$data,'where'=>$where));
 		$set = "";
 		$p = array();
 		foreach ($data as $k => $v) {
@@ -488,7 +488,8 @@ class PSHD {
 		$whr = $this->where($where);
 		$q = "UPDATE ".$this->tableName($table)." SET ".$set." WHERE ".$whr->getClause()."";
 		$p = array_merge($p, $whr->getParameters());
-		$s = $this->statement($q,$p);
+		$s = $this->statement($q);
+		$s->execute($p);
 		$n = $s->rowCount();
 		if($n<1 && $insertIfNonExisting && !$this->exists($table,$where)) {
 			$this->insert($table,array_merge($where,$data));
@@ -505,7 +506,8 @@ class PSHD {
 	 */
 	public function delete($table, $where) {
 		$whr = $this->where($where);
-		$s = $this->statement("DELETE FROM %s WHERE %s", $this->tableName($table), $whr->getClause(), $whr->getParameters());
+		$s = $this->statement("DELETE FROM %s WHERE %s", $this->tableName($table), $whr->getClause());
+		$s->execute($whr->getParameters());
 		return $s->rowCount();
 	}
 

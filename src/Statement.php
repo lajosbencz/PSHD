@@ -107,7 +107,7 @@ class Statement {
 	}
 
 	public function fetchAll($fetch_style=null, $fetch_argument=null, $ctor_args=array()) {
-		return $this->_pdoStatement->fetchAll($fetch_style,$fetch_argument,$ctor_args);
+		return $this->_pdoStatement->fetchAll($fetch_style);
 	}
 
 }

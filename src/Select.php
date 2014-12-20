@@ -673,14 +673,14 @@ class Select
 
 	/**
 	 * @param string $model
+	 * @param bool $append (optional)
 	 * @return Model|object
 	 */
-	public function model($model=null) {
+	public function model($model=null, $append=true) {
 		if(!$model) $model = $this->getFrom();
 		$a = $this->assoc();
 		if(!is_array($a) || count($a)<1) return null;
-		$model.='_Model';
-		// TODO AUTOLOAD THROUGH [PSHD] CLASS
+		if($append) $model.='_Model';
 		return new $model($this->_pshd,$this->getFrom(),$a);
 	}
 
