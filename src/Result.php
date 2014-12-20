@@ -83,7 +83,7 @@ class Result
 
 	public function getQueryString() {
 		if(!$this->_statement) return null;
-		return $this->_statement->queryString;
+		return $this->_statement->getQueryString();
 	}
 
 	public function getParameters() {

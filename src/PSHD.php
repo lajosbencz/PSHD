@@ -155,8 +155,8 @@ class PSHD {
 			return $this;
 		}
 		$this->_connected = true;
-		if ($this->_database) $this->execute("USE %s", $this->_database);
-		if ($this->_charset) $this->execute("SET NAMES %s", $this->_charset);
+		if ($this->_database) $this->execute("USE ".$this->_database);
+		if ($this->_charset) $this->execute("SET NAMES ".$this->_charset);
 		$this->setAutoCommit($this->_autoCommit);
 		return $this;
 	}
