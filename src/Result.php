@@ -28,8 +28,10 @@ class Result
 	protected $_colCount = 0;
 	/** @var int */
 	protected $_rowCount = 0;
+	/** @var string */
+	protected $_table;
 
-	protected function close()
+	protected function _close()
 	{
 		if ($this->_pdoStmnt) $this->_pdoStmnt->closeCursor();
 		return $this;
@@ -45,6 +47,7 @@ class Result
 		$this->_pshd = &$pshd;
 		$this->_queryString = $queryString;
 		$this->_parameters = is_array($parameters)?$parameters:array();
+		$this->_table = null;
 		$this->run();
 	}
 
@@ -54,12 +57,36 @@ class Result
 	 */
 	public function run()
 	{
+		$matches = array();
+		preg_match_all("/\\sFROM\\s/i",$this->_queryString,$matches,\PREG_OFFSET_CAPTURE);
+		foreach($matches[0] as $m) {
+			$paro = $parc =  0;
+			for($i=0; $i<$m[1]; $i++) {
+				if($this->_queryString[$i]=='(') $paro++;
+				if($this->_queryString[$i]==')') $parc++;
+			}
+			if($paro!=$parc) continue;
+			$p = $m[1] + 6;
+			$table = "";
+			for($i=$p;$i<strlen($this->_queryString);$i++) {
+				if($this->_queryString[$i]==' ') break;
+				$table.= $this->_queryString[$i];
+			}
+			$table = trim($table);
+			if(preg_match("/^[a-z\\_][a-z\\.\\_]*$/i",$table)) $this->_table = $table;
+			else $this->_table = null;
+			break;
+		}
 		$this->_colCount = null;
 		$this->_rowCount = null;
-		$this->_pdoStmnt = $this->_pshd->prepare($this->_queryString, $this->_parameters);
-		if($this->_pdoStmnt->execute($this->_parameters)) {
-			$this->_colCount = $this->_pdoStmnt->columnCount();
-			$this->_rowCount = $this->_pdoStmnt->rowCount();
+		$this->_pdoStmnt = $this->_pshd->statement($this->_queryString, $this->_parameters);
+		try {
+			if($this->_pdoStmnt->execute($this->_parameters)) {
+				$this->_colCount = $this->_pdoStmnt->columnCount();
+				$this->_rowCount = $this->_pdoStmnt->rowCount();
+			}
+		} catch(\Exception $e) {
+			$this->_pshd->exception($this->_queryString,$this->_parameters,$e);
 		}
 		return $this;
 	}
@@ -171,15 +198,16 @@ class Result
 		return $r;
 	}
 
-	public function object($model='stdClass') {
-		$a = func_get_args();
-		array_shift($a);
-		return $this->_pdoStmnt->fetchObject($model,$a);
+	public function object() {
+		return $this->_pdoStmnt->fetchObject('stdClass');
 	}
 
-	public function collection($model='stdClass') {
-		$a = func_get_args();
-		array_shift($a);
-		return $this->_pdoStmnt->fetchAll(\PDO::FETCH_OBJ,$model,$a);
+	public function objectTable() {;
+		$r = array();
+		while(($o = $this->object())) {
+			if(!is_object($o) || get_class($o)!='stdClass') break;
+			$r[] = $o;
+		}
+		return $r;
 	}
 }

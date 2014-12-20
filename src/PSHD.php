@@ -17,6 +17,8 @@ class PSHD {
 	protected static $VALID_DRIVER = array('mysql','mysqli','pgsql','sqlite');
 	protected static $VALID_OPTION = array('nameWrapper','idField','idFieldPlace','tablePrefix','tablePrefixPlace','limitEnable','limit','pageLimit','charJoin','charLeftJoin','charRightJoin','charInnerJoin','charSubSelect');
 
+	public static function Autoload() { foreach(array('Exception','Literal','Result','Select','Where','Model') as $f) require_once sprintf("%s/%s.php",__DIR__,$f); }
+
 	/** @var string */
 	protected $_driver;
 	/** @var string */
@@ -41,6 +43,14 @@ class PSHD {
 	protected $_exceptionHandler;
 	/** @var bool */
 	protected $_exceptionHandlerEnabled = true;
+	/** @var callable|null */
+	protected $_queryHandler;
+	/** @var bool */
+	protected $_queryHandlerEnabled = true;
+
+	protected function _queryCallback($query, $parameters=array()) {
+		if($this->_queryHandlerEnabled && is_callable($this->_queryHandler)) call_user_func($this->_queryHandler,$query,$parameters);
+	}
 
 
 	/** @var string */
@@ -146,11 +156,24 @@ class PSHD {
 	 * @param callable|bool $callable
 	 * @return $this
 	 */
-	public function setExceptionHandler($callable=true) {
-		if($callable===true || $callable===true) $this->_exceptionHandlerEnabled = $callable;
+	public function setExceptionCallback($callable=true) {
+		if($callable===true || $callable===false) $this->_exceptionHandlerEnabled = $callable;
 		else {
 			if($callable!==null) $this->_exceptionHandlerEnabled = true;
 			$this->_exceptionHandler = $callable;
+		}
+		return $this;
+	}
+
+	/**
+	 * @param callable|bool $callable (optional)
+	 * @return $this
+	 */
+	public function setQueryCallback($callable=true) {
+		if($callable===true || $callable===false) $this->_queryHandlerEnabled = $callable;
+		else {
+			if($callable!==null) $this->_queryHandlerEnabled = true;
+			$this->_queryHandler = $callable;
 		}
 		return $this;
 	}
@@ -173,7 +196,7 @@ class PSHD {
 		} else {
 			call_user_func($this->_exceptionHandler,$message,$parameters,$exception);
 		}
-		return $this;
+		return null;
 	}
 
 	public function nameWrap($name) {
@@ -227,10 +250,16 @@ class PSHD {
 		return $this;
 	}
 
+	/**
+	 * @param string $format
+	 * @return int|null
+	 */
 	public function execute($format) {
 		$a = func_get_args();
 		$format = array_shift($a);
 		if(count($a)>0) $format = vsprintf($format,$a);
+		$format = $this->placeHolders($format);
+		$this->_queryCallback($format);
 		try {
 			$r = $this->_pdo->exec($format);
 			return $r;
@@ -240,10 +269,16 @@ class PSHD {
 		return null;
 	}
 
+	/**
+	 * @param string $format
+	 * @return \PDOStatement
+	 */
 	public function prepare($format) {
 		$a = func_get_args();
 		$format = array_shift($a);
 		if(count($a)>0) $format = vsprintf($format,$a);
+		$format = $this->placeHolders($format);
+		$this->_queryCallback($format,'prepare');
 		try {
 			$r = $this->_pdo->prepare($format);
 			return $r;
@@ -253,13 +288,44 @@ class PSHD {
 		return null;
 	}
 
-	public function query($format, $parameters=array()) {
+	/**
+	 * @param string $format
+	 * @param array $parameters
+	 * @return \PDOStatement
+	 */
+	public function statement($format, $parameters=array()) {
 		$a = func_get_args();
 		$format = array_shift($a);
 		if(count($a)>0) {
 			if(is_array($a[count($a)-1])) $parameters = array_pop($a);
 			if(count($a)>0) $format = vsprintf($format,$a);
 		}
+		$format = $this->placeHolders($format);
+		$this->_queryCallback($format,$parameters);
+		try {
+			$r = $this->_pdo->prepare($format);
+			$r->execute($parameters);
+			return $r;
+		} catch(\Exception $e) {
+			$this->exception($e);
+		}
+		return null;
+	}
+
+	/**
+	 * @param string $format
+	 * @param array $parameters
+	 * @return Result
+	 */
+	public function result($format, $parameters=array()) {
+		$a = func_get_args();
+		$format = array_shift($a);
+		if(count($a)>0) {
+			if(is_array($a[count($a)-1])) $parameters = array_pop($a);
+			if(count($a)>0) $format = vsprintf($format,$a);
+		}
+		$format = $this->placeHolders($format);
+		$this->_queryCallback($format,$parameters);
 		return new Result($this,$format,$parameters);
 	}
 
@@ -308,8 +374,7 @@ class PSHD {
 			$q .= " ON DUPLICATE KEY UPDATE " . substr($dup, 1);
 		}
 		foreach ($data as $dv) foreach ($dv as $v) $p[] = $v;
-		$s = $this->prepare($q);
-		$s->execute($p);
+		$this->statement($q,$p);
 		return intval($this->_pdo->lastInsertId());
 	}
 
@@ -338,10 +403,9 @@ class PSHD {
 		}
 		$set = substr($set, 1);
 		$whr = $this->where($where);
-		$q = sprintf("UPDATE %s SET %s WHERE %s", $this->tableName($table), $set, $whr->getClause());
+		$q = "UPDATE ".$this->tableName($table)." SET ".$set." WHERE ".$whr->getClause()."";
 		$p = array_merge($p, $whr->getParameters());
-		$s = $this->prepare($q);
-		$s->execute($p);
+		$s = $this->statement($q,$p);
 		$n = $s->rowCount();
 		if($n<1 && $insertIfNonExisting && !$this->exists($table,$where)) {
 			$this->insert($table,array_merge($where,$data));
@@ -352,13 +416,19 @@ class PSHD {
 
 	public function delete($table, $where) {
 		$whr = $this->where($where);
-		$s = $this->prepare("DELETE FROM %s WHERE %s", $this->tableName($table), $whr->getClause());
-		$s->execute($whr->getParameters());
+		$s = $this->statement("DELETE FROM %s WHERE %s", $this->tableName($table), $whr->getClause(), $whr->getParameters());
 		return $s->rowCount();
 	}
 
 	public function exists($table,$where=array()) {
 		return $this->select()->from($table)->where($where)->count()>0;
+	}
+
+	public function model($table,$where) {
+		$model = explode('.',$table);
+		$model = $model[count($model)-1].'_Model';
+		//$model = str_replace(array('.'),array('_'),$table).'_Model';
+		return $this->select('*')->from($table)->where($where)->model($model,$table);
 	}
 
 }
