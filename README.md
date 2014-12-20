@@ -163,7 +163,7 @@ $int = $db->update('test',array(
 	'userName' => 'usr',
 ));
 // UPDATE `pfx_test`
-// SET  `sessionId` = 'sessionuid', `comment` = 'NOW()', `expires` = NOW() + INTERVAL 5 MINUTE
+// SET `sessionId`='sessionuid', `comment`='NOW()', `expires`=NOW() + INTERVAL 5 MINUTE
 // WHERE `userName` LIKE 'usr'
 
 // delete records
@@ -293,7 +293,8 @@ namespace \otherNS {
 
 $model = $db->model('test',5); // test_Model
 $model = $db->select()->from('test')->where(5)->model(); // test_Model
-$model = $db->result("SELECT col1,col2 FROM {P}test WHERE {I}=?",array(5))->model('otherNS\\other_Model',false); // other_Model
+$result = $db->result("SELECT col1,col2 FROM {P}test WHERE {I}=?",array(5));
+$model = $result->model('otherNS\\other_Model',false); // other_Model
 
 print $model->getId();
 print $model['col1'];
