@@ -73,7 +73,7 @@ class Result
 		}
 		$this->_colCount = null;
 		$this->_rowCount = null;
-		$this->_statement = $this->_pshd->statement(str_replace('%','%%',$this->_queryString), $this->_parameters);
+		$this->_statement = $this->_pshd->statement($this->_queryString, $this->_parameters);
 		if($this->_statement->execute($this->_parameters)) {
 			$this->_colCount = $this->_statement->columnCount();
 			$this->_rowCount = $this->_statement->rowCount();

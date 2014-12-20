@@ -300,18 +300,14 @@ class PSHD {
 
 	/**
 	 * Execute SQL command without parameters.
-	 * Can be formatted like printf.
-	 * @param string $format
+	 * @param string $query
 	 * @return int|null
 	 */
-	public function execute($format) {
-		$a = func_get_args();
-		$format = array_shift($a);
-		if(count($a)>0) $format = vsprintf($format,$a);
-		$format = $this->placeHolders($format);
-		$this->_queryCallback($format);
+	public function execute($query) {
+		$query = $this->placeHolders($query);
+		$this->_queryCallback($query);
 		try {
-			$r = $this->_pdo->exec($format);
+			$r = $this->_pdo->exec($query);
 			return $r;
 		} catch(\Exception $e) {
 			$this->exception($e);
@@ -321,18 +317,14 @@ class PSHD {
 
 	/**
 	 * Prepares an SQL statement.
-	 * Can be formatted like printf.
-	 * @param string $format
+	 * @param string $query
 	 * @return Statement
 	 */
-	public function statement($format) {
-		$a = func_get_args();
-		$format = array_shift($a);
-		if(count($a)>0) $format = vsprintf($format,$a);
-		$format = $this->placeHolders($format);
-		$this->_queryCallback($format,'prepare');
+	public function statement($query) {
+		$query = $this->placeHolders($query);
+		$this->_queryCallback($query,'prepare');
 		try {
-			$r = $this->_pdo->prepare($format);
+			$r = $this->_pdo->prepare($query);
 			return new Statement($this, $r);
 		} catch(\Exception $e) {
 			$this->exception($e);
@@ -342,22 +334,15 @@ class PSHD {
 
 	/**
 	 * Executes SQL command with parameters.
-	 * Can be formatted like printf, paremeters array should be last.
-	 * @param string $format
+	 * @param string $query
 	 * @param array $parameters
 	 * @return bool
 	 */
-	public function query($format, $parameters=array()) {
-		$a = func_get_args();
-		$format = array_shift($a);
-		if(count($a)>0) {
-			if(is_array($a[count($a)-1])) $parameters = array_pop($a);
-			if(count($a)>0) $format = vsprintf($format,$a);
-		}
-		$format = $this->placeHolders($format);
-		$this->_queryCallback($format,$parameters);
+	public function query($query, $parameters=array()) {
+		$query = $this->placeHolders($query);
+		$this->_queryCallback($query,$parameters);
 		try {
-			$r = $this->_pdo->prepare($format);
+			$r = $this->_pdo->prepare($query);
 			$r->execute($parameters);
 			return true;
 		} catch(\Exception $e) {
@@ -368,21 +353,14 @@ class PSHD {
 
 	/**
 	 * Creates Result from SQL command and optional parameters
-	 * Can be formatted like printf, paremeters array should be last.
-	 * @param string $format
+	 * @param string $query
 	 * @param array $parameters (optional)
 	 * @return Result
 	 */
-	public function result($format, $parameters=array()) {
-		$a = func_get_args();
-		$format = array_shift($a);
-		if(count($a)>0) {
-			if(is_array($a[count($a)-1])) $parameters = array_pop($a);
-			if(count($a)>0) $format = vsprintf($format,$a);
-		}
-		$format = $this->placeHolders($format);
-		$this->_queryCallback($format,$parameters);
-		return new Result($this,$format,$parameters);
+	public function result($query, $parameters=array()) {
+		$query = $this->placeHolders($query);
+		$this->_queryCallback($query,$parameters);
+		return new Result($this,$query,$parameters);
 	}
 
 	/**
