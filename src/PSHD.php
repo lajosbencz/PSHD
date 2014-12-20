@@ -15,7 +15,7 @@ namespace PSHD;
 class PSHD {
 
 	protected static $VALID_DRIVER = array('mysql','mysqli','pgsql','sqlite');
-	protected static $VALID_OPTION = array('nameWrapper','idField','idFieldPlace','tablePrefix','tablePrefixPlace','limitEnable','limit','pageLimit','charJoin','charLeftJoin','charRightJoin','charInnerJoin','charSubSelect');
+	protected static $VALID_OPTION = array('nameWrapper','idField','idFieldPlace','tablePrefix','tablePrefixPlace','pageLimit','charJoin','charLeftJoin','charRightJoin','charInnerJoin','charSubSelect');
 
 	/** Use this if you are not a fan of composer */
 	public static function Autoload() { foreach(array('Exception','Literal','Statement','Result','Select','Where','Model') as $f) require_once sprintf("%s/%s.php",__DIR__,$f); }
@@ -64,10 +64,6 @@ class PSHD {
 	public $tablePrefix = '';
 	/** @var string */
 	public $tablePrefixPlace = '{P}';
-	/** @var bool */
-	public $limitEnable = true;
-	/** @var int */
-	public $limit = 1000000;
 	/** @var int */
 	public $pageLimit = 15;
 	/** @var string */
