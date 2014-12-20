@@ -271,7 +271,7 @@ $int = $select->count();
 #### Models
 ```php
 
-class foo_Model extends \PSHD\Model {
+class test_Model extends \PSHD\Model {
 	protected function _private() {
 		return array();
 	}
