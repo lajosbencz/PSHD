@@ -163,11 +163,9 @@ class Result
 	public function column($idx = 0)
 	{
 		if (!$this->_pdoStmnt) return null;
-		$a = $this->_pdoStmnt->fetchAll(\PDO::FETCH_NUM);
-		$idx = max(0, min($this->_colCount - 1, $idx));
-		$r = array();
-		foreach ($a as $v) $r[] = $v[$idx];
-		return $r;
+		$idx = max(0, $idx);
+		if($this->_colCount>0) $idx = min($idx, $this->_colCount - 1);
+		return $this->_pdoStmnt->fetchColumn($idx);
 	}
 
 	/**

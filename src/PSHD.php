@@ -17,7 +17,8 @@ class PSHD {
 	protected static $VALID_DRIVER = array('mysql','mysqli','pgsql','sqlite');
 	protected static $VALID_OPTION = array('nameWrapper','idField','idFieldPlace','tablePrefix','tablePrefixPlace','limitEnable','limit','pageLimit','charJoin','charLeftJoin','charRightJoin','charInnerJoin','charSubSelect');
 
-	public static function Autoload() { foreach(array('Exception','Literal','Result','Select','Where','Model') as $f) require_once sprintf("%s/%s.php",__DIR__,$f); }
+	/** Use this if you are not a fan of composer */
+	public static function Autoload() { foreach(array('Exception','Literal','Statement','Result','Select','Where','Model') as $f) require_once sprintf("%s/%s.php",__DIR__,$f); }
 
 	/** @var string */
 	protected $_driver;
@@ -124,14 +125,26 @@ class PSHD {
 		if($autoConnect) $this->connect();
 	}
 
+	/**
+	 * Get PDO class
+	 * @return \PDO
+	 */
 	public function getPDO() {
 		return $this->_pdo;
 	}
 
+	/**
+	 * State of connection
+	 * @return bool
+	 */
 	public function isConnected() {
 		return $this->_connected;
 	}
 
+	/**
+	 * Connect to database
+	 * @return $this
+	 */
 	public function connect() {
 		$attr = array(
 			\PDO::ATTR_PERSISTENT => $this->_persist,
@@ -153,6 +166,8 @@ class PSHD {
 	}
 
 	/**
+	 * Passed in function will be called when an error occurs.
+	 * Passing in a boolean will enable/disable it while keeping the assigned function.
 	 * @param callable|bool $callable
 	 * @return $this
 	 */
@@ -166,6 +181,8 @@ class PSHD {
 	}
 
 	/**
+	 * Passed in function will be called before each command.
+	 * Passing in a boolean will enable/disable it while keeping the assigned function.
 	 * @param callable|bool $callable (optional)
 	 * @return $this
 	 */
@@ -179,10 +196,11 @@ class PSHD {
 	}
 
 	/**
+	 * Handle DB related exceptions with this.
 	 * @param string|\Exception $message
-	 * @param array $parameters
-	 * @param \Exception|null $exception
-	 * @throws \Exception
+	 * @param array $parameters (optional)
+	 * @param \Exception|null $exception (optional)
+	 * @throws \Exception|Exception
 	 * @return $this
 	 */
 	public function exception($message, $parameters=array(), $exception=null) {
@@ -199,6 +217,11 @@ class PSHD {
 		return null;
 	}
 
+	/**
+	 * Wrap names properly
+	 * @param string $name
+	 * @return string
+	 */
 	public function nameWrap($name) {
 		if(strlen($this->nameWrapper)<1) $this->nameWrapper = '`';
 		if(strlen($this->nameWrapper)<2) $this->nameWrapper[1] = $this->nameWrapper[0];
@@ -221,36 +244,67 @@ class PSHD {
 		return str_replace(array($this->idFieldPlace,$this->tablePrefixPlace),array($this->idField,$this->tablePrefix),$string);
 	}
 
+	/**
+	 * Creates Select independent Literal expression
+	 * @param Literal|string $expression
+	 * @param array $parameters (optional)
+	 * @return Literal
+	 */
 	public function literal($expression, $parameters=array()) {
 		return new Literal($expression,$parameters);
 	}
 
+	/**
+	 * Creates Select independent Where clause
+	 * @param Where|array|string|int $expression
+	 * @param array $parameters (optional)
+	 * @return Where
+	 */
 	public function where($expression, $parameters=array()) {
 		return new Where($this, $expression,$parameters);
 	}
 
+	/**
+	 * Should each command be committed implicitly
+	 * @param bool $autoCommit (optional)
+	 * @return $this
+	 */
 	public function setAutoCommit($autoCommit=true) {
 		$autoCommit = $autoCommit?1:0;
 		$this->_pdo->setAttribute(\PDO::ATTR_AUTOCOMMIT, $autoCommit);
 		return $this;
 	}
 
+	/**
+	 * Begin cancelable changes
+	 * @return $this
+	 */
 	public function begin() {
 		$this->_pdo->beginTransaction();
 		return $this;
 	}
 
-	public function rollBack() {
+	/**
+	 * Revert changes
+	 * @return $this
+	 */
+	public function revert() {
 		$this->_pdo->rollBack();
 		return $this;
 	}
 
+	/**
+	 * Commit changes
+	 * @return $this
+	 */
 	public function commit() {
 		$this->_pdo->commit();
 		return $this;
 	}
 
 	/**
+	 * Execute SQL command without parameters.
+	 * Can be formatted like printf.
 	 * @param string $format
 	 * @return int|null
 	 */
@@ -270,10 +324,12 @@ class PSHD {
 	}
 
 	/**
+	 * Prepares an SQL statement.
+	 * Can be formatted like printf.
 	 * @param string $format
-	 * @return \PDOStatement
+	 * @return Statement
 	 */
-	public function prepare($format) {
+	public function statement($format) {
 		$a = func_get_args();
 		$format = array_shift($a);
 		if(count($a)>0) $format = vsprintf($format,$a);
@@ -281,7 +337,7 @@ class PSHD {
 		$this->_queryCallback($format,'prepare');
 		try {
 			$r = $this->_pdo->prepare($format);
-			return $r;
+			return new Statement($this, $r);
 		} catch(\Exception $e) {
 			$this->exception($e);
 		}
@@ -289,11 +345,13 @@ class PSHD {
 	}
 
 	/**
+	 * Executes SQL command with parameters.
+	 * Can be formatted like printf, paremeters array should be last.
 	 * @param string $format
 	 * @param array $parameters
-	 * @return \PDOStatement
+	 * @return bool
 	 */
-	public function statement($format, $parameters=array()) {
+	public function query($format, $parameters=array()) {
 		$a = func_get_args();
 		$format = array_shift($a);
 		if(count($a)>0) {
@@ -305,16 +363,18 @@ class PSHD {
 		try {
 			$r = $this->_pdo->prepare($format);
 			$r->execute($parameters);
-			return $r;
+			return true;
 		} catch(\Exception $e) {
 			$this->exception($e);
 		}
-		return null;
+		return false;
 	}
 
 	/**
+	 * Creates Result from SQL command and optional parameters
+	 * Can be formatted like printf, paremeters array should be last.
 	 * @param string $format
-	 * @param array $parameters
+	 * @param array $parameters (optional)
 	 * @return Result
 	 */
 	public function result($format, $parameters=array()) {
@@ -329,6 +389,15 @@ class PSHD {
 		return new Result($this,$format,$parameters);
 	}
 
+	/**
+	 * Insert data into table.
+	 * Data array can be multidimensional.
+	 * Can be set to update on key conflict.
+	 * @param string $table
+	 * @param array $data
+	 * @param bool $updateIfDuplicate (optional)
+	 * @return int
+	 */
 	public function insert($table, $data, $updateIfDuplicate=false) {
 		$table = $this->tableName($table);
 		$multi = false;
@@ -378,12 +447,26 @@ class PSHD {
 		return intval($this->_pdo->lastInsertId());
 	}
 
+	/**
+	 * Creates chainable Select class
+	 * @param array $columns
+	 * @return Select
+	 */
 	public function select($columns=array()) {
 		$s = new Select($this);
 		call_user_func_array(array($s, 'select'), func_get_args());
 		return $s;
 	}
 
+	/**
+	 * Update table
+	 * @param string $table
+	 * @param array $data
+	 * @param Where|array|string|int $where
+	 * @param bool $insertIfNonExisting (optional)
+	 * @return bool|int
+	 * @throws Exception
+	 */
 	public function update($table, $data, $where, $insertIfNonExisting=false) {
 		$eligibleForce = is_array($where);
 		$where = new Where($this, $where);
@@ -414,16 +497,34 @@ class PSHD {
 		return $n;
 	}
 
+	/**
+	 * Delete from table
+	 * @param string $table
+	 * @param Where|array|string|int $where
+	 * @return int
+	 */
 	public function delete($table, $where) {
 		$whr = $this->where($where);
 		$s = $this->statement("DELETE FROM %s WHERE %s", $this->tableName($table), $whr->getClause(), $whr->getParameters());
 		return $s->rowCount();
 	}
 
+	/**
+	 * Does record exist
+	 * @param string $table
+	 * @param Where|array|string|int $where
+	 * @return bool
+	 */
 	public function exists($table,$where=array()) {
 		return $this->select()->from($table)->where($where)->count()>0;
 	}
 
+	/**
+	 * Creates model from record
+	 * @param string $table
+	 * @param Where|array|string|int $where
+	 * @return object|Model
+	 */
 	public function model($table,$where) {
 		$model = explode('.',$table);
 		$model = $model[count($model)-1].'_Model';
