@@ -1,9 +1,6 @@
 PSHD
 ====
 
-`PSHD` class
-------------
-
 An OOP attempt to simplify common SQL commands.
 
 Currently supported drivers: `mysql`, `pgsql`, `sqlite`
