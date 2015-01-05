@@ -18,8 +18,8 @@ class Result
 
 	/** @var PSHD */
 	protected $_pshd = null;
-	/** @var \PDOStatement */
-	protected $_pdoStmnt = null;
+	/** @var Statement */
+	protected $_statement = null;
 	/** @var string */
 	protected $_queryString = null;
 	/** @var array */
@@ -28,12 +28,8 @@ class Result
 	protected $_colCount = 0;
 	/** @var int */
 	protected $_rowCount = 0;
-
-	protected function close()
-	{
-		if ($this->_pdoStmnt) $this->_pdoStmnt->closeCursor();
-		return $this;
-	}
+	/** @var string */
+	protected $_table;
 
 	/**
 	 * @param PSHD $pshd
@@ -45,6 +41,7 @@ class Result
 		$this->_pshd = &$pshd;
 		$this->_queryString = $queryString;
 		$this->_parameters = is_array($parameters)?$parameters:array();
+		$this->_table = null;
 		$this->run();
 	}
 
@@ -54,19 +51,39 @@ class Result
 	 */
 	public function run()
 	{
+		$matches = array();
+		preg_match_all("/\\sFROM\\s/i",$this->_queryString,$matches,\PREG_OFFSET_CAPTURE);
+		foreach($matches[0] as $m) {
+			$paro = $parc =  0;
+			for($i=0; $i<$m[1]; $i++) {
+				if($this->_queryString[$i]=='(') $paro++;
+				if($this->_queryString[$i]==')') $parc++;
+			}
+			if($paro!=$parc) continue;
+			$p = $m[1] + 6;
+			$table = "";
+			for($i=$p;$i<strlen($this->_queryString);$i++) {
+				if($this->_queryString[$i]==' ') break;
+				$table.= $this->_queryString[$i];
+			}
+			$table = trim($table);
+			if(preg_match("/^[a-z\\_][a-z\\.\\_]*$/i",$table)) $this->_table = $table;
+			else $this->_table = null;
+			break;
+		}
 		$this->_colCount = null;
 		$this->_rowCount = null;
-		$this->_pdoStmnt = $this->_pshd->prepare($this->_queryString, $this->_parameters);
-		if($this->_pdoStmnt->execute($this->_parameters)) {
-			$this->_colCount = $this->_pdoStmnt->columnCount();
-			$this->_rowCount = $this->_pdoStmnt->rowCount();
+		$this->_statement = $this->_pshd->statement($this->_queryString, $this->_parameters);
+		if($this->_statement->execute($this->_parameters)) {
+			$this->_colCount = $this->_statement->columnCount();
+			$this->_rowCount = $this->_statement->rowCount();
 		}
 		return $this;
 	}
 
 	public function getQueryString() {
-		if(!$this->_pdoStmnt) return null;
-		return $this->_pdoStmnt->queryString;
+		if(!$this->_statement) return null;
+		return $this->_statement->getQueryString();
 	}
 
 	public function getParameters() {
@@ -79,7 +96,7 @@ class Result
 	 */
 	public function getRowCount()
 	{
-		if (!$this->_pdoStmnt) return null;
+		if (!$this->_statement) return null;
 		return $this->_rowCount;
 	}
 
@@ -89,7 +106,7 @@ class Result
 	 */
 	public function getColumnCount()
 	{
-		if (!$this->_pdoStmnt) return null;
+		if (!$this->_statement) return null;
 		return $this->_rowCount;
 	}
 
@@ -100,8 +117,8 @@ class Result
 	 */
 	public function cell($idx = 0)
 	{
-		if (!$this->_pdoStmnt) return null;
-		$r = $this->_pdoStmnt->fetch(\PDO::FETCH_NUM);
+		if (!$this->_statement) return null;
+		$r = $this->_statement->fetch(\PDO::FETCH_NUM);
 		$idx = max(0, min($this->_colCount - 1, $idx));
 		return $r[$idx];
 	}
@@ -112,8 +129,8 @@ class Result
 	 */
 	public function row()
 	{
-		if (!$this->_pdoStmnt) return null;
-		$r = $this->_pdoStmnt->fetch(\PDO::FETCH_NUM);
+		if (!$this->_statement) return null;
+		$r = $this->_statement->fetch(\PDO::FETCH_NUM);
 		return $r;
 	}
 
@@ -123,8 +140,8 @@ class Result
 	 */
 	public function assoc()
 	{
-		if (!$this->_pdoStmnt) return null;
-		$r = $this->_pdoStmnt->fetch(\PDO::FETCH_ASSOC);
+		if (!$this->_statement) return null;
+		$r = $this->_statement->fetch(\PDO::FETCH_ASSOC);
 		return $r;
 	}
 
@@ -135,12 +152,10 @@ class Result
 	 */
 	public function column($idx = 0)
 	{
-		if (!$this->_pdoStmnt) return null;
-		$a = $this->_pdoStmnt->fetchAll(\PDO::FETCH_NUM);
-		$idx = max(0, min($this->_colCount - 1, $idx));
-		$r = array();
-		foreach ($a as $v) $r[] = $v[$idx];
-		return $r;
+		if (!$this->_statement) return null;
+		$idx = max(0, $idx);
+		if($this->_colCount>0) $idx = min($idx, $this->_colCount - 1);
+		return $this->_statement->fetchColumn($idx);
 	}
 
 	/**
@@ -151,9 +166,9 @@ class Result
 	 */
 	public function keyValue($keyIdx=0, $valueIdx=1)
 	{
-		if (!$this->_pdoStmnt) return null;
-		$a = $this->_pdoStmnt->fetchAll(\PDO::FETCH_NUM);
-		if($this->_pdoStmnt->columnCount()<2) $this->_pshd->exception(new Exception("The query for keyValue results must have at least two columns!"));
+		if (!$this->_statement) return null;
+		$a = $this->_statement->fetchAll(\PDO::FETCH_NUM);
+		if($this->_statement->columnCount()<2) $this->_pshd->exception(new Exception("The query for keyValue results must have at least two columns!"));
 		$r = array();
 		foreach($a as $v) $r[$v[$keyIdx]] = $v[$valueIdx];
 		return $r;
@@ -166,20 +181,21 @@ class Result
 	 */
 	public function table($assoc = true)
 	{
-		if (!$this->_pdoStmnt) return null;
-		$r = $this->_pdoStmnt->fetchAll($assoc ? \PDO::FETCH_ASSOC : \PDO::FETCH_NUM);
+		if (!$this->_statement) return null;
+		$r = $this->_statement->fetchAll($assoc ? \PDO::FETCH_ASSOC : \PDO::FETCH_NUM);
 		return $r;
 	}
 
-	public function object($model='stdClass') {
-		$a = func_get_args();
-		array_shift($a);
-		return $this->_pdoStmnt->fetchObject($model,$a);
+	public function object() {
+		return $this->_statement->fetchObject('stdClass');
 	}
 
-	public function collection($model='stdClass') {
-		$a = func_get_args();
-		array_shift($a);
-		return $this->_pdoStmnt->fetchAll(\PDO::FETCH_OBJ,$model,$a);
+	public function objectTable() {;
+		$r = array();
+		while(($o = $this->object())) {
+			if(!is_object($o) || get_class($o)!='stdClass') break;
+			$r[] = $o;
+		}
+		return $r;
 	}
 }

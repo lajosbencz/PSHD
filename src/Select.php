@@ -78,14 +78,11 @@ class Select
 				if (strlen($jMode) > 0) if (($jInvert = ($jMode[0] == '_'))) $jMode = substr($jMode, 1);
 				break;
 			}
-			$qJoin .= sprintf(" %s JOIN %s AS %s ON %s.%s_%s=%s.%s ",
-				$jMode,
-				$jTable,
-				$jTableAlias,
-				$jInvert ? $jTableAlias : $jFromAlias, $jInvert ? $jFrom : $jTable, $this->_pshd->idField,
-				$jInvert ? $jFromAlias : $jTableAlias, $this->_pshd->idField
-
-			);
+			$qJoin .= " $jMode JOIN $jTable AS $jTableAlias ON ".
+				($jInvert ? $jTableAlias : $jFromAlias).".".($jInvert ? $jFrom : $jTable)."_".$this->_pshd->idField.
+				"=".
+				($jInvert ? $jFromAlias : $jTableAlias).".".$this->_pshd->idField.
+				" ";
 			if (count($jv) == 1 && isset($jv['*'])) {
 				$this->_fields[] = $jTableAlias . ".*";
 			} else {
@@ -156,9 +153,9 @@ class Select
 			$qOrderBy = substr($qOrderBy, 0, -1);
 		}
 		if (is_numeric($this->_limit) || is_numeric($this->_offset)) {
-			$qLimitOffset = sprintf("LIMIT %d OFFSET %d", max(1, $this->_limit), max(0, $this->_offset));
+			$qLimitOffset = "LIMIT ".max(1, $this->_limit)." OFFSET ".max(0, $this->_offset)."";
 		}
-		$this->_queryString = $this->_pshd->placeHolders(trim(sprintf("SELECT %s FROM %s %s %s %s %s %s", $qSelect, $qFrom, $qJoin, $qWhere, $qGroupBy, $qOrderBy, $qLimitOffset)));
+		$this->_queryString = $this->_pshd->placeHolders(trim("SELECT $qSelect FROM $qFrom $qJoin $qWhere $qGroupBy $qOrderBy $qLimitOffset"));
 	}
 
 	/**
@@ -213,6 +210,48 @@ class Select
 			default:
 				if (!in_array($field, $this->_fields)) $this->_fields[] = $field;
 				break;
+		}
+	}
+
+	protected function _expandRow(&$dv) {
+		foreach ($this->_sub as $sTable => $sFields) {
+			$sTableAlias = $sTable;
+			if (preg_match(self::$RGX_ALIAS, $sTable, $m)) {
+				$sTable = $m[1];
+				$sTableAlias = $m[3];
+			}
+			if (!is_array($sFields)) $sFields = array($sFields);
+			$q = "SELECT ".implode(',', array_keys($sFields))." FROM $sTable WHERE ".$this->_from."_".$this->_pshd->idField."=?";
+			$dv[$sTableAlias] = $this->_pshd->result($q, array($dv[$this->_pshd->idField]))->table();
+		}
+		foreach ($this->_subSelects as $name => $select) {
+			$nameAlias = $name;
+			if (preg_match(self::$RGX_ALIAS, $name, $m)) {
+				//$name = $m[1];
+				$nameAlias = $m[3];
+			}
+			/** @var $select Select */
+			$sel = clone $select;
+			$sel->build();
+			$dv[$nameAlias] = $sel->table();
+		}
+		foreach ($this->_subQueries as $name => $select) {
+			$nameAlias = $name;
+			if (preg_match(self::$RGX_ALIAS, $name, $m)) {
+				//$name = $m[1];
+				$nameAlias = $m[3];
+			}
+			$invert = $select['invert'];
+			$select = $select['select'];
+			$sel = clone $select;
+			/** @var $sel Select */
+			if ($invert) {
+				$sel->where(" AND ". $this->_pshd->idField."=?", array($dv[$sel->getFrom() . '_' . $this->_pshd->idField]));
+			} else {
+				$sel->where(" AND ".$this->_from."_".$this->_pshd->idField."=?", array($dv[$this->_pshd->idField]));
+			}
+			$sel->build();
+			$dv[$nameAlias] = $sel->table();
 		}
 	}
 
@@ -593,7 +632,9 @@ class Select
 	 */
 	public function assoc()
 	{
-		return $this->result()->assoc();
+		$a = $this->result()->assoc();
+		$this->_expandRow($a);
+		return $a;
 	}
 
 	/**
@@ -626,49 +667,33 @@ class Select
 	public function table($assoc = true)
 	{
 		$d = $this->result()->table($assoc);
-		foreach ($d as $dk => $dv) {
-			foreach ($this->_sub as $sTable => $sFields) {
-				$sTableAlias = $sTable;
-				if (preg_match(self::$RGX_ALIAS, $sTable, $m)) {
-					$sTable = $m[1];
-					$sTableAlias = $m[3];
-				}
-				if (!is_array($sFields)) $sFields = array($sFields);
-				$q = sprintf("SELECT %s FROM %s WHERE %s_%s=?", implode(',', array_keys($sFields)), $sTable, $this->_from, $this->_pshd->idField);
-				$d[$dk][$sTableAlias] = $this->_pshd->query($q, array($dv[$this->_pshd->idField]))->table();
-			}
-			foreach ($this->_subSelects as $name => $select) {
-				$nameAlias = $name;
-				if (preg_match(self::$RGX_ALIAS, $name, $m)) {
-					//$name = $m[1];
-					$nameAlias = $m[3];
-				}
-				/** @var $select Select */
-				$sel = clone $select;
-				$sel->build();
-				$d[$dk][$nameAlias] = $sel->table();
-			}
-			foreach ($this->_subQueries as $name => $select) {
-				$nameAlias = $name;
-				if (preg_match(self::$RGX_ALIAS, $name, $m)) {
-					//$name = $m[1];
-					$nameAlias = $m[3];
-				}
-				$invert = $select['invert'];
-				$select = $select['select'];
-				$sel = clone $select;
-				/** @var $sel Select */
-				if ($invert) {
-					$sel->where(sprintf(" AND %s=?", $this->_pshd->idField), array($dv[$sel->getFrom() . '_' . $this->_pshd->idField]));
-				} else {
-					$sel->where(sprintf(" AND %s_%s=?", $this->_from, $this->_pshd->idField), array($dv[$this->_pshd->idField]));
-				}
-				$sel->build();
-				$d[$dk][$nameAlias] = $sel->table();
-			}
-		}
+		foreach ($d as &$dv) $this->_expandRow($dv);
 		return $d;
 	}
+
+	/**
+	 * @param string $model
+	 * @param bool $append (optional)
+	 * @return Model|object
+	 */
+	public function model($model=null, $append=true) {
+		if(!$model) $model = $this->getFrom();
+		$a = $this->assoc();
+		if(!is_array($a) || count($a)<1) return null;
+		if($append) $model.='_Model';
+		return new $model($this->_pshd,$this->getFrom(),$a);
+	}
+
+	/**
+	 * @param string $model
+	 * @return array
+	 */
+	public function modelTable($model=null) {
+		$r = array();
+		while(($o=$this->model($model))) $r[] = $o;
+		return $r;
+	}
+
 
 	/**
 	 * Count results with COUNT(*).

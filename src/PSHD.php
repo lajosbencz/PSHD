@@ -15,7 +15,10 @@ namespace PSHD;
 class PSHD {
 
 	protected static $VALID_DRIVER = array('mysql','mysqli','pgsql','sqlite');
-	protected static $VALID_OPTION = array('nameWrapper','idField','idFieldPlace','tablePrefix','tablePrefixPlace','limitEnable','limit','pageLimit','charJoin','charLeftJoin','charRightJoin','charInnerJoin','charSubSelect');
+	protected static $VALID_OPTION = array('nameWrapper','idField','idFieldPlace','tablePrefix','tablePrefixPlace','pageLimit','charJoin','charLeftJoin','charRightJoin','charInnerJoin','charSubSelect');
+
+	/** Use this if you are not a fan of composer */
+	public static function Autoload() { foreach(array('Exception','Literal','Statement','Result','Select','Where','Model') as $f) require_once sprintf("%s/%s.php",__DIR__,$f); }
 
 	/** @var string */
 	protected $_driver;
@@ -41,6 +44,14 @@ class PSHD {
 	protected $_exceptionHandler;
 	/** @var bool */
 	protected $_exceptionHandlerEnabled = true;
+	/** @var callable|null */
+	protected $_queryHandler;
+	/** @var bool */
+	protected $_queryHandlerEnabled = true;
+
+	protected function _queryCallback($query, $parameters=array()) {
+		if($this->_queryHandlerEnabled && is_callable($this->_queryHandler)) call_user_func($this->_queryHandler,$query,$parameters);
+	}
 
 
 	/** @var string */
@@ -53,10 +64,6 @@ class PSHD {
 	public $tablePrefix = '';
 	/** @var string */
 	public $tablePrefixPlace = '{P}';
-	/** @var bool */
-	public $limitEnable = true;
-	/** @var int */
-	public $limit = 1000000;
 	/** @var int */
 	public $pageLimit = 15;
 	/** @var string */
@@ -114,14 +121,26 @@ class PSHD {
 		if($autoConnect) $this->connect();
 	}
 
+	/**
+	 * Get PDO class
+	 * @return \PDO
+	 */
 	public function getPDO() {
 		return $this->_pdo;
 	}
 
+	/**
+	 * State of connection
+	 * @return bool
+	 */
 	public function isConnected() {
 		return $this->_connected;
 	}
 
+	/**
+	 * Connect to database
+	 * @return $this
+	 */
 	public function connect() {
 		$attr = array(
 			\PDO::ATTR_PERSISTENT => $this->_persist,
@@ -136,18 +155,20 @@ class PSHD {
 			return $this;
 		}
 		$this->_connected = true;
-		if ($this->_database) $this->execute("USE %s", $this->_database);
-		if ($this->_charset) $this->execute("SET NAMES %s", $this->_charset);
+		if ($this->_database) $this->execute("USE ".$this->_database);
+		if ($this->_charset) $this->execute("SET NAMES ".$this->_charset);
 		$this->setAutoCommit($this->_autoCommit);
 		return $this;
 	}
 
 	/**
+	 * Passed in function will be called when an error occurs.
+	 * Passing in a boolean will enable/disable it while keeping the assigned function.
 	 * @param callable|bool $callable
 	 * @return $this
 	 */
-	public function setExceptionHandler($callable=true) {
-		if($callable===true || $callable===true) $this->_exceptionHandlerEnabled = $callable;
+	public function setExceptionCallback($callable=true) {
+		if($callable===true || $callable===false) $this->_exceptionHandlerEnabled = $callable;
 		else {
 			if($callable!==null) $this->_exceptionHandlerEnabled = true;
 			$this->_exceptionHandler = $callable;
@@ -156,10 +177,26 @@ class PSHD {
 	}
 
 	/**
+	 * Passed in function will be called before each command.
+	 * Passing in a boolean will enable/disable it while keeping the assigned function.
+	 * @param callable|bool $callable (optional)
+	 * @return $this
+	 */
+	public function setQueryCallback($callable=true) {
+		if($callable===true || $callable===false) $this->_queryHandlerEnabled = $callable;
+		else {
+			if($callable!==null) $this->_queryHandlerEnabled = true;
+			$this->_queryHandler = $callable;
+		}
+		return $this;
+	}
+
+	/**
+	 * Handle DB related exceptions with this.
 	 * @param string|\Exception $message
-	 * @param array $parameters
-	 * @param \Exception|null $exception
-	 * @throws \Exception
+	 * @param array $parameters (optional)
+	 * @param \Exception|null $exception (optional)
+	 * @throws \Exception|Exception
 	 * @return $this
 	 */
 	public function exception($message, $parameters=array(), $exception=null) {
@@ -173,9 +210,14 @@ class PSHD {
 		} else {
 			call_user_func($this->_exceptionHandler,$message,$parameters,$exception);
 		}
-		return $this;
+		return null;
 	}
 
+	/**
+	 * Wrap names properly
+	 * @param string $name
+	 * @return string
+	 */
 	public function nameWrap($name) {
 		if(strlen($this->nameWrapper)<1) $this->nameWrapper = '`';
 		if(strlen($this->nameWrapper)<2) $this->nameWrapper[1] = $this->nameWrapper[0];
@@ -198,41 +240,74 @@ class PSHD {
 		return str_replace(array($this->idFieldPlace,$this->tablePrefixPlace),array($this->idField,$this->tablePrefix),$string);
 	}
 
+	/**
+	 * Creates Select independent Literal expression
+	 * @param Literal|string $expression
+	 * @param array $parameters (optional)
+	 * @return Literal
+	 */
 	public function literal($expression, $parameters=array()) {
 		return new Literal($expression,$parameters);
 	}
 
+	/**
+	 * Creates Select independent Where clause
+	 * @param Where|array|string|int $expression
+	 * @param array $parameters (optional)
+	 * @return Where
+	 */
 	public function where($expression, $parameters=array()) {
 		return new Where($this, $expression,$parameters);
 	}
 
+	/**
+	 * Should each command be committed implicitly
+	 * @param bool $autoCommit (optional)
+	 * @return $this
+	 */
 	public function setAutoCommit($autoCommit=true) {
 		$autoCommit = $autoCommit?1:0;
 		$this->_pdo->setAttribute(\PDO::ATTR_AUTOCOMMIT, $autoCommit);
 		return $this;
 	}
 
+	/**
+	 * Begin cancelable changes
+	 * @return $this
+	 */
 	public function begin() {
 		$this->_pdo->beginTransaction();
 		return $this;
 	}
 
-	public function rollBack() {
+	/**
+	 * Revert changes
+	 * @return $this
+	 */
+	public function revert() {
 		$this->_pdo->rollBack();
 		return $this;
 	}
 
+	/**
+	 * Commit changes
+	 * @return $this
+	 */
 	public function commit() {
 		$this->_pdo->commit();
 		return $this;
 	}
 
-	public function execute($format) {
-		$a = func_get_args();
-		$format = array_shift($a);
-		if(count($a)>0) $format = vsprintf($format,$a);
+	/**
+	 * Execute SQL command without parameters.
+	 * @param string $query
+	 * @return int|null
+	 */
+	public function execute($query) {
+		$query = $this->placeHolders($query);
+		$this->_queryCallback($query);
 		try {
-			$r = $this->_pdo->exec($format);
+			$r = $this->_pdo->exec($query);
 			return $r;
 		} catch(\Exception $e) {
 			$this->exception($e);
@@ -240,29 +315,63 @@ class PSHD {
 		return null;
 	}
 
-	public function prepare($format) {
-		$a = func_get_args();
-		$format = array_shift($a);
-		if(count($a)>0) $format = vsprintf($format,$a);
+	/**
+	 * Executes SQL command with parameters.
+	 * @param string $query
+	 * @param array $parameters
+	 * @return bool
+	 */
+	public function query($query, $parameters=array()) {
+		$query = $this->placeHolders($query);
+		$this->_queryCallback($query,$parameters);
 		try {
-			$r = $this->_pdo->prepare($format);
-			return $r;
+			$r = $this->_pdo->prepare($query);
+			$r->execute($parameters);
+			return true;
+		} catch(\Exception $e) {
+			$this->exception($e);
+		}
+		return false;
+	}
+
+	/**
+	 * Prepares an SQL statement.
+	 * @param string $query
+	 * @return Statement
+	 */
+	public function statement($query) {
+		$query = $this->placeHolders($query);
+		$this->_queryCallback($query,'prepare');
+		try {
+			$r = $this->_pdo->prepare($query);
+			return new Statement($this, $r);
 		} catch(\Exception $e) {
 			$this->exception($e);
 		}
 		return null;
 	}
 
-	public function query($format, $parameters=array()) {
-		$a = func_get_args();
-		$format = array_shift($a);
-		if(count($a)>0) {
-			if(is_array($a[count($a)-1])) $parameters = array_pop($a);
-			if(count($a)>0) $format = vsprintf($format,$a);
-		}
-		return new Result($this,$format,$parameters);
+	/**
+	 * Creates Result from SQL command and optional parameters
+	 * @param string $query
+	 * @param array $parameters (optional)
+	 * @return Result
+	 */
+	public function result($query, $parameters=array()) {
+		$query = $this->placeHolders($query);
+		$this->_queryCallback($query,$parameters);
+		return new Result($this,$query,$parameters);
 	}
 
+	/**
+	 * Insert data into table.
+	 * Data array can be multidimensional.
+	 * Can be set to update on key conflict.
+	 * @param string $table
+	 * @param array $data
+	 * @param bool $updateIfDuplicate (optional)
+	 * @return int
+	 */
 	public function insert($table, $data, $updateIfDuplicate=false) {
 		$table = $this->tableName($table);
 		$multi = false;
@@ -308,22 +417,35 @@ class PSHD {
 			$q .= " ON DUPLICATE KEY UPDATE " . substr($dup, 1);
 		}
 		foreach ($data as $dv) foreach ($dv as $v) $p[] = $v;
-		$s = $this->prepare($q);
-		$s->execute($p);
+		$this->query($q,$p);
 		return intval($this->_pdo->lastInsertId());
 	}
 
+	/**
+	 * Creates chainable Select class
+	 * @param array $columns
+	 * @return Select
+	 */
 	public function select($columns=array()) {
 		$s = new Select($this);
 		call_user_func_array(array($s, 'select'), func_get_args());
 		return $s;
 	}
 
+	/**
+	 * Update table
+	 * @param string $table
+	 * @param array $data
+	 * @param Where|array|string|int $where
+	 * @param bool $insertIfNonExisting (optional)
+	 * @return bool|int
+	 * @throws Exception
+	 */
 	public function update($table, $data, $where, $insertIfNonExisting=false) {
 		$eligibleForce = is_array($where);
 		$where = new Where($this, $where);
 		if(is_int($where)) $where = array($this->idField=>$where);
-		if($insertIfNonExisting && !$eligibleForce) throw new Exception('When using with force insert, $where parameter should be an array!',0,null,array('table'=>$table,'data'=>$data,'where'=>$where));
+		if($insertIfNonExisting && !$eligibleForce) throw new Exception('When using with force insert, $where parameter must be an array!',0,null,array('table'=>$table,'data'=>$data,'where'=>$where));
 		$set = "";
 		$p = array();
 		foreach ($data as $k => $v) {
@@ -338,9 +460,9 @@ class PSHD {
 		}
 		$set = substr($set, 1);
 		$whr = $this->where($where);
-		$q = sprintf("UPDATE %s SET %s WHERE %s", $this->tableName($table), $set, $whr->getClause());
+		$q = "UPDATE ".$this->tableName($table)." SET ".$set." WHERE ".$whr->getClause()."";
 		$p = array_merge($p, $whr->getParameters());
-		$s = $this->prepare($q);
+		$s = $this->statement($q);
 		$s->execute($p);
 		$n = $s->rowCount();
 		if($n<1 && $insertIfNonExisting && !$this->exists($table,$where)) {
@@ -350,15 +472,40 @@ class PSHD {
 		return $n;
 	}
 
+	/**
+	 * Delete from table
+	 * @param string $table
+	 * @param Where|array|string|int $where
+	 * @return int
+	 */
 	public function delete($table, $where) {
 		$whr = $this->where($where);
-		$s = $this->prepare("DELETE FROM %s WHERE %s", $this->tableName($table), $whr->getClause());
+		$s = $this->statement("DELETE FROM %s WHERE %s", $this->tableName($table), $whr->getClause());
 		$s->execute($whr->getParameters());
 		return $s->rowCount();
 	}
 
+	/**
+	 * Does record exist
+	 * @param string $table
+	 * @param Where|array|string|int $where
+	 * @return bool
+	 */
 	public function exists($table,$where=array()) {
 		return $this->select()->from($table)->where($where)->count()>0;
+	}
+
+	/**
+	 * Creates model from record
+	 * @param string $table
+	 * @param Where|array|string|int $where
+	 * @return object|Model
+	 */
+	public function model($table,$where) {
+		$model = explode('.',$table);
+		$model = $model[count($model)-1].'_Model';
+		//$model = str_replace(array('.'),array('_'),$table).'_Model';
+		return $this->select('*')->from($table)->where($where)->model($model,$table);
 	}
 
 }

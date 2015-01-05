@@ -17,9 +17,11 @@
             "src/Exception.php",
             "src/Literal.php",
             "src/PSHD.php",
+            "src/Statement.php",
             "src/Result.php",
             "src/Select.php",
-            "src/Where.php"
+            "src/Where.php",
+            "src/Model.php"
         ]
     }
 }
