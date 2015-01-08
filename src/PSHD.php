@@ -480,7 +480,7 @@ class PSHD {
 	 */
 	public function delete($table, $where) {
 		$whr = $this->where($where);
-		$s = $this->statement("DELETE FROM %s WHERE %s", $this->tableName($table), $whr->getClause());
+		$s = $this->statement("DELETE FROM ".$this->tableName($table)." WHERE ".$whr->getClause()."");
 		$s->execute($whr->getParameters());
 		return $s->rowCount();
 	}
