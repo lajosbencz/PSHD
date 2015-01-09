@@ -448,9 +448,11 @@ class Select
 			foreach ($this->_filterWhere as $k => $v) if (isset($v['filter'])) {
 				$this->_filterWhere[$k] = null;
 				unset($this->_filterWhere[$k]);
+				$this->_filterEnabled[$k] = false;
 			}
 		} else {
 			if ($where === null) {
+				$this->_filterEnabled[$name] = false;
 				$this->_filterWhere[$name] = null;
 				unset($this->_filterWhere[$name]);
 			} elseif($where===false) {
@@ -458,6 +460,7 @@ class Select
 			} elseif($where===true) {
 				$this->_filterEnabled[$name] = true;
 			} else {
+				$this->_filterEnabled[$name] = true;
 				$this->_filterWhere[$name] = array('filter' => $this->_pshd->where($where, $parameters));
 			}
 		}
