@@ -151,7 +151,7 @@ class PSHD {
 		try {
 			$this->_pdo = new \PDO($this->_dsn, $this->_user, $this->_password, $attr);
 		} catch (\Exception $pe) {
-			$this->exception($pe);
+			$this->exception("Failed to connect to DB",[],$pe);
 			return $this;
 		}
 		$this->_connected = true;
@@ -310,7 +310,7 @@ class PSHD {
 			$r = $this->_pdo->exec($query);
 			return $r;
 		} catch(\Exception $e) {
-			$this->exception($e);
+			$this->exception($query,[],$e);
 		}
 		return null;
 	}
@@ -329,7 +329,7 @@ class PSHD {
 			$r->execute($parameters);
 			return true;
 		} catch(\Exception $e) {
-			$this->exception($e);
+			$this->exception($query,$parameters,$e);
 		}
 		return false;
 	}
@@ -346,7 +346,7 @@ class PSHD {
 			$r = $this->_pdo->prepare($query);
 			return new Statement($this, $r);
 		} catch(\Exception $e) {
-			$this->exception($e);
+			$this->exception($query,[],$e);
 		}
 		return null;
 	}
