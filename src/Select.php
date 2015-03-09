@@ -711,7 +711,7 @@ class Select
 	{
 		$c = clone $this;
 		$c->select(null)->select('COUNT(*)');
-		$this->orderBy(null);
+		$c->orderBy(null);
 		if ($removeLimitOffset) $c->limit(null, null);
 		return $c->result(true)->cell();
 	}
