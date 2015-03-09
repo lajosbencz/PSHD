@@ -14,10 +14,11 @@ namespace PSHD;
  */
 class Select
 {
-	/**
-	 * @var string
-	 */
 	protected static $RGX_ALIAS = "/^([^\\s]+)(\\s+AS)?\\s+([^\\s]+)$/i";
+	protected static function sanitizeField($field)
+	{
+		return preg_replace('/[^a-z0-9_-\\.\\?\\:\\@\\s]/i', '', $field);
+	}
 
 	/** @var PSHD */
 	protected $_pshd = null;
@@ -477,6 +478,7 @@ class Select
 		if ($field === null) {
 			$this->_groupBy = array();
 		} else {
+			$field = self::sanitizeField($field);
 			$this->_groupBy[$field] = 1;
 		}
 		return $this;
@@ -497,6 +499,7 @@ class Select
 			$e = explode(" ", $field);
 			if (count($e) > 1) {
 				$field = $e[0];
+				$field = self::sanitizeField($field);
 				$e[1] = strtoupper($e[1]);
 				switch ($e[1]) {
 					default:
@@ -708,6 +711,7 @@ class Select
 	{
 		$c = clone $this;
 		$c->select(null)->select('COUNT(*)');
+		$this->orderBy(null);
 		if ($removeLimitOffset) $c->limit(null, null);
 		return $c->result(true)->cell();
 	}
