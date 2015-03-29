@@ -27,6 +27,7 @@ class Select
 	protected $_where = array();
 	protected $_filter = array();
 	protected $_groupBy = array();
+	protected $_having = array();
 	protected $_orderBy = array();
 	protected $_limit = null;
 	protected $_offset = null;
@@ -56,6 +57,7 @@ class Select
 		$qJoin = "";
 		$qWhere = "";
 		$qGroupBy = "";
+		$qHaving = '';
 		$qOrderBy = "";
 		$qLimitOffset = "";
 		if (count($this->_sub) > 0) $this->select($this->_from . "." . $this->_pshd->idField);
@@ -145,6 +147,16 @@ class Select
 			}
 			$qGroupBy = substr($qGroupBy, 0, -1);
 		}
+
+		if (count($this->_having) > 0) {
+			$qHaving = 'HAVING ';
+			foreach ($this->_having as $i=>&$w) {
+				foreach($w->getParameters() as &$p) $this->addParameter($p);
+				$clause = $w->getClause();
+				if($i>0 && !preg_match("/\\s*(AND|OR|NOR|XOR)\\s/i",$clause)) $clause = ' AND '.$clause;
+				$qHaving.= $clause;
+			}
+		}
 		if (count($this->_orderBy) > 0) {
 			$qOrderBy = "ORDER BY";
 			foreach ($this->_orderBy as $field => $order) {
@@ -156,7 +168,7 @@ class Select
 		if (is_numeric($this->_limit) || is_numeric($this->_offset)) {
 			$qLimitOffset = "LIMIT ".max(1, $this->_limit)." OFFSET ".max(0, $this->_offset)."";
 		}
-		$this->_queryString = $this->_pshd->placeHolders(trim("SELECT $qSelect FROM $qFrom $qJoin $qWhere $qGroupBy $qOrderBy $qLimitOffset"));
+		$this->_queryString = $this->_pshd->placeHolders(trim("SELECT $qSelect FROM $qFrom $qJoin $qWhere $qGroupBy $qHaving $qOrderBy $qLimitOffset"));
 	}
 
 	/**
@@ -473,16 +485,26 @@ class Select
 	 * @param string $field
 	 * @return $this
 	 */
-	public function groupBy($field)
+	public function group($field)
 	{
 		if ($field === null) {
 			$this->_groupBy = array();
 		} else {
-			if(is_array($field)) foreach($field as $f) $this->groupBy($f);
+			if(is_array($field)) foreach($field as $f) $this->group($f);
 			else {
 				$field = self::sanitizeField($field);
 				$this->_groupBy[$field] = 1;
 			}
+		}
+		return $this;
+	}
+
+
+	public function having($where, $parameters = array()) {
+		if ($where === null) {
+			$this->_having = array();
+		} else {
+			$this->_having[] = $this->_pshd->where($where, $parameters);
 		}
 		return $this;
 	}
@@ -493,7 +515,7 @@ class Select
 	 * @param string $order
 	 * @return $this
 	 */
-	public function orderBy($field, $order = "ASC")
+	public function order($field, $order = "ASC")
 	{
 		if ($field === null) {
 			$this->_orderBy = array();
@@ -714,7 +736,7 @@ class Select
 	{
 		$c = clone $this;
 		$c->select(null)->select('COUNT(*)');
-		$c->orderBy(null);
+		$c->order(null);
 		if ($removeLimitOffset) $c->limit(null, null);
 		return $c->result(true)->cell();
 	}
