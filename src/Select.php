@@ -526,21 +526,21 @@ class Select
 				$field = $e[0];
 				$field = self::sanitizeField($field);
 				$order = strtoupper($e[1]);
-				switch ($order) {
-					default:
-					case 1:
-					case 'ASC':
-					case '+':
-					case '<':
-						$order = "ASC";
-						break;
-					case 0:
-					case 'DESC':
-					case '-':
-					case '>':
-						$order = "DESC";
-						break;
-				}
+			}
+			switch ($order) {
+				default:
+				case 1:
+				case 'ASC':
+				case '+':
+				case '<':
+					$order = "ASC";
+					break;
+				case 0:
+				case 'DESC':
+				case '-':
+				case '>':
+					$order = "DESC";
+					break;
 			}
 			$this->_orderBy[$field] = $order;
 		}
