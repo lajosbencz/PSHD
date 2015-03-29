@@ -478,8 +478,11 @@ class Select
 		if ($field === null) {
 			$this->_groupBy = array();
 		} else {
-			$field = self::sanitizeField($field);
-			$this->_groupBy[$field] = 1;
+			if(is_array($field)) foreach($field as $f) $this->groupBy($f);
+			else {
+				$field = self::sanitizeField($field);
+				$this->_groupBy[$field] = 1;
+			}
 		}
 		return $this;
 	}
