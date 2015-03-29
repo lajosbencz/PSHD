@@ -17,7 +17,7 @@ class Select
 	protected static $RGX_ALIAS = "/^([^\\s]+)(\\s+AS)?\\s+([^\\s]+)$/i";
 	protected static function sanitizeField($field)
 	{
-		return preg_replace('/[^a-z0-9_-\\.\\?\\:\\@\\s]/i', '', $field);
+		return preg_replace('/[^a-z0-9\\_\\-\\.\\?\\:\\@\\s]/i', '', $field);
 	}
 
 	/** @var PSHD */
