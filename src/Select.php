@@ -525,8 +525,8 @@ class Select
 			if (count($e) > 1) {
 				$field = $e[0];
 				$field = self::sanitizeField($field);
-				$e[1] = strtoupper($e[1]);
-				switch ($e[1]) {
+				$order = strtoupper($e[1]);
+				switch ($order) {
 					default:
 					case 1:
 					case 'ASC':
