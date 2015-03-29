@@ -536,6 +536,7 @@ class Select
 					$order = "ASC";
 					break;
 				case 0:
+				case -1:
 				case 'DESC':
 				case '-':
 				case '>':
