@@ -219,10 +219,10 @@ $select->where("id = ?",array(42));
 $select->where(array('id'=>42));
 $select->where(42); // integer parameters will be converted to array($idField => $parameter)
 
-$select->orderBy('when','DESC');
-$select->orderBy('when',0);
-$select->orderBy('when','-');
-$select->orderBy('when','>');
+$select->order('when','DESC');
+$select->order('when',0);
+$select->order('when','-');
+$select->order('when','>');
 
 $select->limit(10)->offset(20);
 $select->limit(10,20);
