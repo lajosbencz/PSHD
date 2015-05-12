@@ -36,11 +36,11 @@ class Result
 	 * @param string $queryString
 	 * @param array $parameters
 	 */
-	public function __construct($pshd, $queryString, $parameters=array())
+	public function __construct($pshd, $queryString, $parameters = array())
 	{
 		$this->_pshd = &$pshd;
 		$this->_queryString = $queryString;
-		$this->_parameters = is_array($parameters)?$parameters:array();
+		$this->_parameters = is_array($parameters) ? $parameters : array();
 		$this->_table = null;
 		$this->run();
 	}
@@ -52,41 +52,43 @@ class Result
 	public function run()
 	{
 		$matches = array();
-		preg_match_all("/\\sFROM\\s/i",$this->_queryString,$matches,\PREG_OFFSET_CAPTURE);
-		foreach($matches[0] as $m) {
-			$paro = $parc =  0;
-			for($i=0; $i<$m[1]; $i++) {
-				if($this->_queryString[$i]=='(') $paro++;
-				if($this->_queryString[$i]==')') $parc++;
+		preg_match_all("/\\sFROM\\s/i", $this->_queryString, $matches, \PREG_OFFSET_CAPTURE);
+		foreach ($matches[0] as $m) {
+			$paro = $parc = 0;
+			for ($i = 0; $i < $m[1]; $i++) {
+				if ($this->_queryString[$i] == '(') $paro++;
+				if ($this->_queryString[$i] == ')') $parc++;
 			}
-			if($paro!=$parc) continue;
+			if ($paro != $parc) continue;
 			$p = $m[1] + 6;
 			$table = "";
-			for($i=$p;$i<strlen($this->_queryString);$i++) {
-				if($this->_queryString[$i]==' ') break;
-				$table.= $this->_queryString[$i];
+			for ($i = $p; $i < strlen($this->_queryString); $i++) {
+				if ($this->_queryString[$i] == ' ') break;
+				$table .= $this->_queryString[$i];
 			}
 			$table = trim($table);
-			if(preg_match("/^[a-z\\_][a-z\\.\\_]*$/i",$table)) $this->_table = $table;
+			if (preg_match("/^[a-z\\_][a-z\\.\\_]*$/i", $table)) $this->_table = $table;
 			else $this->_table = null;
 			break;
 		}
 		$this->_colCount = null;
 		$this->_rowCount = null;
 		$this->_statement = $this->_pshd->statement($this->_queryString, $this->_parameters);
-		if($this->_statement->execute($this->_parameters)) {
+		if ($this->_statement->execute($this->_parameters)) {
 			$this->_colCount = $this->_statement->columnCount();
 			$this->_rowCount = $this->_statement->rowCount();
 		}
 		return $this;
 	}
 
-	public function getQueryString() {
-		if(!$this->_statement) return null;
+	public function getQueryString()
+	{
+		if (!$this->_statement) return null;
 		return $this->_statement->getQueryString();
 	}
 
-	public function getParameters() {
+	public function getParameters()
+	{
 		return $this->_parameters;
 	}
 
@@ -154,9 +156,9 @@ class Result
 	{
 		if (!$this->_statement) return null;
 		$idx = max(0, $idx);
-		if($this->_colCount>0) $idx = min($idx, $this->_colCount - 1);
+		if ($this->_colCount > 0) $idx = min($idx, $this->_colCount - 1);
 		$r = array();
-		foreach($this->_statement->fetchAll(\PDO::FETCH_NUM) as $row) $r[] = $row[$idx];
+		foreach ($this->_statement->fetchAll(\PDO::FETCH_NUM) as $row) $r[] = $row[$idx];
 		return $r;
 	}
 
@@ -166,13 +168,13 @@ class Result
 	 * @return array|null
 	 * @throws Exception
 	 */
-	public function keyValue($keyIdx=0, $valueIdx=1)
+	public function keyValue($keyIdx = 0, $valueIdx = 1)
 	{
 		if (!$this->_statement) return null;
 		$a = $this->_statement->fetchAll(\PDO::FETCH_NUM);
-		if($this->_statement->columnCount()<2) $this->_pshd->exception(new Exception("The query for keyValue results must have at least two columns!"));
+		if ($this->_statement->columnCount() < 2) $this->_pshd->exception(new Exception("The query for keyValue results must have at least two columns!"));
 		$r = array();
-		foreach($a as $v) $r[$v[$keyIdx]] = $v[$valueIdx];
+		foreach ($a as $v) $r[$v[$keyIdx]] = $v[$valueIdx];
 		return $r;
 	}
 
@@ -188,14 +190,17 @@ class Result
 		return $r;
 	}
 
-	public function object() {
+	public function object()
+	{
 		return $this->_statement->fetchObject('stdClass');
 	}
 
-	public function objectTable() {;
+	public function objectTable()
+	{
+		;
 		$r = array();
-		while(($o = $this->object())) {
-			if(!is_object($o) || get_class($o)!='stdClass') break;
+		while (($o = $this->object())) {
+			if (!is_object($o) || get_class($o) != 'stdClass') break;
 			$r[] = $o;
 		}
 		return $r;

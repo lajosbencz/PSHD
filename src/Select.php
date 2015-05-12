@@ -15,6 +15,7 @@ namespace PSHD;
 class Select
 {
 	protected static $RGX_ALIAS = "/^([^\\s]+)(\\s+AS)?\\s+([^\\s]+)$/i";
+
 	protected static function sanitizeField($field)
 	{
 		return preg_replace('/[^a-z0-9\\_\\-\\.\\?\\:\\@\\s]/i', '', $field);
@@ -81,16 +82,16 @@ class Select
 				if (strlen($jMode) > 0) if (($jInvert = ($jMode[0] == '_'))) $jMode = substr($jMode, 1);
 				break;
 			}
-			$qJoin .= " $jMode JOIN $jTable AS $jTableAlias ON ".
-				($jInvert ? $jTableAlias : $jFromAlias).".".($jInvert ? $jFrom : $jTable)."_".$this->_pshd->idField.
-				"=".
-				($jInvert ? $jFromAlias : $jTableAlias).".".$this->_pshd->idField.
+			$qJoin .= " $jMode JOIN $jTable AS $jTableAlias ON " .
+				($jInvert ? $jTableAlias : $jFromAlias) . "." . ($jInvert ? $jFrom : $jTable) . "_" . $this->_pshd->idField .
+				"=" .
+				($jInvert ? $jFromAlias : $jTableAlias) . "." . $this->_pshd->idField .
 				" ";
 			if (count($jv) == 1 && isset($jv['*'])) {
 				$this->_fields[] = $jTableAlias . ".*";
 			} else {
 				foreach ($jv as $jField => $v) {
-					if(strlen($jField)>0) {
+					if (strlen($jField) > 0) {
 						$jFieldAlias = $jField;
 						if (preg_match(self::$RGX_ALIAS, trim($jField), $m)) {
 							$jField = $m[1];
@@ -109,23 +110,22 @@ class Select
 				}
 			}
 		}
-		foreach($this->_fields as $fv) {
-			$qSelect.= ','.$fv;
-			if(is_object($fv) && get_class($fv)==__NAMESPACE__."\\Literal") {
+		foreach ($this->_fields as $fv) {
+			$qSelect .= ',' . $fv;
+			if (is_object($fv) && get_class($fv) == __NAMESPACE__ . "\\Literal") {
 				/** @var Literal $fv */
-				foreach($fv->getParameters() as $fvp) $this->addParameter($fvp);
+				foreach ($fv->getParameters() as $fvp) $this->addParameter($fvp);
 			}
 		}
-		$qSelect = substr($qSelect,1);
+		$qSelect = substr($qSelect, 1);
 		$qSelect = preg_replace("/(^|\\,)\\./", "\$1" . $qFrom . ".", $qSelect);
-		$qJoin.= $this->_joinCustom;
-		foreach ($this->_filterWhere as $n=>$w) {
+		$qJoin .= $this->_joinCustom;
+		foreach ($this->_filterWhere as $n => $w) {
 			if (isset($w['where'])) $w = $w['where'];
 			elseif (isset($w['filter'])) {
-				if(!$this->_filterEnabled[$n]) continue;
+				if (!$this->_filterEnabled[$n]) continue;
 				$w = $w['filter'];
-			}
-			else $this->_pshd->exception(new Exception("Invalid WHERE data!"));
+			} else $this->_pshd->exception(new Exception("Invalid WHERE data!"));
 			/* @var $w Where */
 			$c = trim($w->getClause());
 			if (strpos($c, $this->_pshd->idField . " ") === 0 || strpos($c, $this->_pshd->idField . "=") === 0) $c = $this->_from . '.' . $c;
@@ -150,11 +150,11 @@ class Select
 
 		if (count($this->_having) > 0) {
 			$qHaving = 'HAVING ';
-			foreach ($this->_having as $i=>&$w) {
-				foreach($w->getParameters() as &$p) $this->addParameter($p);
+			foreach ($this->_having as $i => &$w) {
+				foreach ($w->getParameters() as &$p) $this->addParameter($p);
 				$clause = $w->getClause();
-				if($i>0 && !preg_match("/\\s*(AND|OR|NOR|XOR)\\s/i",$clause)) $clause = ' AND '.$clause;
-				$qHaving.= $clause;
+				if ($i > 0 && !preg_match("/\\s*(AND|OR|NOR|XOR)\\s/i", $clause)) $clause = ' AND ' . $clause;
+				$qHaving .= $clause;
 			}
 		}
 		if (count($this->_orderBy) > 0) {
@@ -166,7 +166,7 @@ class Select
 			$qOrderBy = substr($qOrderBy, 0, -1);
 		}
 		if (is_numeric($this->_limit) || is_numeric($this->_offset)) {
-			$qLimitOffset = "LIMIT ".max(1, $this->_limit)." OFFSET ".max(0, $this->_offset)."";
+			$qLimitOffset = "LIMIT " . max(1, $this->_limit) . " OFFSET " . max(0, $this->_offset) . "";
 		}
 		$this->_queryString = $this->_pshd->placeHolders(trim("SELECT $qSelect FROM $qFrom $qJoin $qWhere $qGroupBy $qHaving $qOrderBy $qLimitOffset"));
 	}
@@ -188,8 +188,7 @@ class Select
 				}
 				$this->_subSelects[$alias] = $field;
 				return;
-			}
-			else if (get_class($field) == __NAMESPACE__ . "\\Literal") {
+			} else if (get_class($field) == __NAMESPACE__ . "\\Literal") {
 				$this->_fields[] = $field;
 				return;
 			}
@@ -226,7 +225,8 @@ class Select
 		}
 	}
 
-	protected function _expandRow(&$dv) {
+	protected function _expandRow(&$dv)
+	{
 		foreach ($this->_sub as $sTable => $sFields) {
 			$sTableAlias = $sTable;
 			if (preg_match(self::$RGX_ALIAS, $sTable, $m)) {
@@ -234,7 +234,7 @@ class Select
 				$sTableAlias = $m[3];
 			}
 			if (!is_array($sFields)) $sFields = array($sFields);
-			$q = "SELECT ".implode(',', array_keys($sFields))." FROM $sTable WHERE ".$this->_from."_".$this->_pshd->idField."=?";
+			$q = "SELECT " . implode(',', array_keys($sFields)) . " FROM $sTable WHERE " . $this->_from . "_" . $this->_pshd->idField . "=?";
 			$dv[$sTableAlias] = $this->_pshd->result($q, array($dv[$this->_pshd->idField]))->table();
 		}
 		foreach ($this->_subSelects as $name => $select) {
@@ -259,9 +259,9 @@ class Select
 			$sel = clone $select;
 			/** @var $sel Select */
 			if ($invert) {
-				$sel->where(" AND ". $this->_pshd->idField."=?", array($dv[$sel->getFrom() . '_' . $this->_pshd->idField]));
+				$sel->where(" AND " . $this->_pshd->idField . "=?", array($dv[$sel->getFrom() . '_' . $this->_pshd->idField]));
 			} else {
-				$sel->where(" AND ".$this->_from."_".$this->_pshd->idField."=?", array($dv[$this->_pshd->idField]));
+				$sel->where(" AND " . $this->_from . "_" . $this->_pshd->idField . "=?", array($dv[$this->_pshd->idField]));
 			}
 			$sel->build();
 			$dv[$nameAlias] = $sel->table();
@@ -302,7 +302,7 @@ class Select
 	 */
 	public function getQueryString()
 	{
-		if(!$this->isBuilt()) $this->build();
+		if (!$this->isBuilt()) $this->build();
 		return $this->_queryString;
 	}
 
@@ -392,9 +392,9 @@ class Select
 	{
 		if ($table === null) {
 			$this->_join = array();
-		} elseif(is_string($table) && (preg_match("/\\sON\\s/i",$table) || (func_num_args()==1 && preg_match("/^[\\S]+$/",trim($table))))) {
-			if(!preg_match("/^((LEFT|INNER|RIGHT)[\\s]*)?JOIN/i",trim($table))) $table = "JOIN ".$table."";
-			$this->_joinCustom.= " ".$table." ";
+		} elseif (is_string($table) && (preg_match("/\\sON\\s/i", $table) || (func_num_args() == 1 && preg_match("/^[\\S]+$/", trim($table))))) {
+			if (!preg_match("/^((LEFT|INNER|RIGHT)[\\s]*)?JOIN/i", trim($table))) $table = "JOIN " . $table . "";
+			$this->_joinCustom .= " " . $table . " ";
 		} else {
 			if (!is_array($fields)) $fields = array($fields);
 			if (!is_array($this->_join)) $this->_join = array();
@@ -468,9 +468,9 @@ class Select
 				$this->_filterEnabled[$name] = false;
 				$this->_filterWhere[$name] = null;
 				unset($this->_filterWhere[$name]);
-			} elseif($where===false) {
+			} elseif ($where === false) {
 				$this->_filterEnabled[$name] = false;
-			} elseif($where===true) {
+			} elseif ($where === true) {
 				$this->_filterEnabled[$name] = true;
 			} else {
 				$this->_filterEnabled[$name] = true;
@@ -490,7 +490,7 @@ class Select
 		if ($field === null) {
 			$this->_groupBy = array();
 		} else {
-			if(is_array($field)) foreach($field as $f) $this->group($f);
+			if (is_array($field)) foreach ($field as $f) $this->group($f);
 			else {
 				$field = self::sanitizeField($field);
 				$this->_groupBy[$field] = 1;
@@ -500,7 +500,8 @@ class Select
 	}
 
 
-	public function having($where, $parameters = array()) {
+	public function having($where, $parameters = array())
+	{
 		if ($where === null) {
 			$this->_having = array();
 		} else {
@@ -582,7 +583,7 @@ class Select
 	 */
 	public function page($page = 1, $size = null)
 	{
-		$page = max(1,$page);
+		$page = max(1, $page);
 		$size = is_int($size) ? $size : $this->_pshd->pageLimit;
 		$this->limit($size, $size * ($page - 1));
 		return $this;
@@ -611,7 +612,8 @@ class Select
 		return $this;
 	}
 
-	public function isBuilt() {
+	public function isBuilt()
+	{
 		return $this->_built;
 	}
 
@@ -635,7 +637,7 @@ class Select
 	 */
 	public function result($force = false)
 	{
-		if($force || !$this->isBuilt()) $this->build();
+		if ($force || !$this->isBuilt()) $this->build();
 		return new Result($this->getPSHD(), $this->_queryString, $this->_parameters);
 	}
 
@@ -686,9 +688,9 @@ class Select
 	 * @return array|null
 	 * @throws Exception
 	 */
-	public function keyValue($keyIdx=0, $valueIdx=1)
+	public function keyValue($keyIdx = 0, $valueIdx = 1)
 	{
-		return $this->result()->keyValue($keyIdx,$valueIdx);
+		return $this->result()->keyValue($keyIdx, $valueIdx);
 	}
 
 	/**
@@ -708,21 +710,23 @@ class Select
 	 * @param bool $append (optional)
 	 * @return Model|object
 	 */
-	public function model($model=null, $append=true) {
-		if(!$model) $model = $this->getFrom();
+	public function model($model = null, $append = true)
+	{
+		if (!$model) $model = $this->getFrom();
 		$a = $this->assoc();
-		if(!is_array($a) || count($a)<1) return null;
-		if($append) $model.='_Model';
-		return new $model($this->_pshd,$this->getFrom(),$a);
+		if (!is_array($a) || count($a) < 1) return null;
+		if ($append) $model .= '_Model';
+		return new $model($this->_pshd, $this->getFrom(), $a);
 	}
 
 	/**
 	 * @param string $model
 	 * @return array
 	 */
-	public function modelTable($model=null) {
+	public function modelTable($model = null)
+	{
 		$r = array();
-		while(($o=$this->model($model))) $r[] = $o;
+		while (($o = $this->model($model))) $r[] = $o;
 		return $r;
 	}
 

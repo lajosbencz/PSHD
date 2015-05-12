@@ -12,7 +12,8 @@ namespace PSHD;
  * Class Where
  * @package PSHD
  */
-class Where {
+class Where
+{
 
 	/**
 	 * Is array associative
@@ -40,19 +41,19 @@ class Where {
 	{
 		$this->_pshd = $pshd;
 		if (isset($parameters) && !is_array($parameters)) $parameters = array($parameters);
-		if(is_object($clause) && get_class($clause)==__NAMESPACE__.'\\Where') {
+		if (is_object($clause) && get_class($clause) == __NAMESPACE__ . '\\Where') {
 			/** @var Where $clause */
-			$parameters = count($parameters)>0?$parameters:$clause->getParameters();
+			$parameters = count($parameters) > 0 ? $parameters : $clause->getParameters();
 			$clause = $clause->getClause();
 		} else {
-			if (is_numeric($clause) || (is_string($clause) && preg_match("/^[a-z0-9\\-\\_\\+]+$/i",$clause) && func_num_args()==2)) $clause = array($this->_pshd->idField => $clause);
+			if (is_numeric($clause) || (is_string($clause) && preg_match("/^[a-z0-9\\-\\_\\+]+$/i", $clause) && func_num_args() == 2)) $clause = array($this->_pshd->idField => $clause);
 			if (is_array($clause)) {
 				$where = "";
 				$parameters = array();
 				$isAssoc = self::IsAssoc($clause);
 				if ($isAssoc) {
 					foreach ($clause as $k => $v) {
-						$where .= " AND $k".(is_string($v) && !is_numeric($v)?' LIKE ':' = ')."?";
+						$where .= " AND $k" . (is_string($v) && !is_numeric($v) ? ' LIKE ' : ' = ') . "?";
 						$parameters[] = $v;
 					}
 				} else {
@@ -91,15 +92,16 @@ class Where {
 
 
 	/**
-	 * Adds clause fragment
+	 * Adds clause fragment with parameters
 	 * @param string $type
 	 * @param string $clause
 	 * @param array $parameters (optional)
 	 * @return $this
 	 */
-	public function addClause($type, $clause, $parameters=[]) {
-		$r = '';
-		if(strlen(trim($this->_clause))>0) {
+	public function addClause($type, $clause, $parameters = [])
+	{
+		$r = false;
+		if (strlen(trim($this->_clause)) > 0) {
 			switch (strtolower(trim($type))) {
 				default:
 				case 'and':
@@ -120,9 +122,23 @@ class Where {
 					break;
 			}
 		}
-		//$clause.= preg_replace("/^(\\s*\\()?/i", '$1 '.$r.' ', $clause);
-		$this->_clause.= ' '.trim($r.' '.$clause).' ';
-		$this->_parameters = array_merge($this->_parameters, $parameters);
+		$this->appendClause($clause, $r);
+		$this->appendParameters($parameters);
+		return $this;
+	}
+
+	/**
+	 * Appends string to existing clause. You may pass in an operator to safely prepend it
+	 * @param string $string
+	 * @param bool|string $operator (optional)
+	 * @return $this
+	 */
+	public function appendClause($string, $operator = false)
+	{
+		if ($operator && strlen(trim($this->_clause)) > 0) {
+			$this->_clause .= ' ' . trim($operator) . '';
+		}
+		$this->_clause .= ' ' . trim($string) . ' ';
 		return $this;
 	}
 
@@ -158,12 +174,24 @@ class Where {
 	}
 
 	/**
+	 * Appends parameter list to existing values
+	 * @param array $values
+	 * @return $this
+	 */
+	public function appendParameters($values)
+	{
+		$this->_parameters = array_merge($this->_parameters, array_values($values));
+		return $this;
+	}
+
+	/**
 	 * Adds clause with AND
 	 * @param string|array $clause
 	 * @param array $parameters (optional)
 	 * @return $this
 	 */
-	public function a($clause, $parameters = array()) {
+	public function a($clause, $parameters = array())
+	{
 		return $this->addClause(__FUNCTION__, $clause, $parameters);
 	}
 
@@ -173,7 +201,8 @@ class Where {
 	 * @param array $parameters (optional)
 	 * @return $this
 	 */
-	public function o($clause, $parameters = array()) {
+	public function o($clause, $parameters = array())
+	{
 		return $this->addClause(__FUNCTION__, $clause, $parameters);
 	}
 
@@ -183,7 +212,8 @@ class Where {
 	 * @param array $parameters (optional)
 	 * @return $this
 	 */
-	public function n($clause, $parameters = array()) {
+	public function n($clause, $parameters = array())
+	{
 		return $this->addClause(__FUNCTION__, $clause, $parameters);
 	}
 
@@ -193,8 +223,28 @@ class Where {
 	 * @param array $parameters (optional)
 	 * @return $this
 	 */
-	public function x($clause, $parameters = array()) {
+	public function x($clause, $parameters = array())
+	{
 		return $this->addClause(__FUNCTION__, $clause, $parameters);
+	}
+
+	/**
+	 * <field> IN (<values[0]>,...,<values[n-1]>)
+	 * @param string $field
+	 * @param array $values
+	 * @return $this
+	 */
+	public function in($field, $values)
+	{
+		$field = trim($field);
+		$vn = count($values);
+		if ($vn < 1) throw new \InvalidArgumentException('$values must contain items');
+		if (strlen(trim($this->_clause)) > 0) {
+			if (!preg_match('/^(and|or|not|xor)\\s/i', $field)) $field = 'AND ' . trim($field);
+		}
+		$this->appendClause($field . ' IN (?' . str_repeat(',?', $vn - 1) . ')');
+		$this->appendParameters($values);
+		return $this;
 	}
 
 	/**
