@@ -155,7 +155,9 @@ class Result
 		if (!$this->_statement) return null;
 		$idx = max(0, $idx);
 		if($this->_colCount>0) $idx = min($idx, $this->_colCount - 1);
-		return $this->_statement->fetchColumn($idx);
+		$r = array();
+		foreach($this->_statement->fetchAll(\PDO::FETCH_NUM) as $row) $r[] = $row[$idx];
+		return $r;
 	}
 
 	/**

@@ -14,10 +14,11 @@ namespace PSHD;
  */
 class Select
 {
-	/**
-	 * @var string
-	 */
 	protected static $RGX_ALIAS = "/^([^\\s]+)(\\s+AS)?\\s+([^\\s]+)$/i";
+	protected static function sanitizeField($field)
+	{
+		return preg_replace('/[^a-z0-9\\_\\-\\.\\?\\:\\@\\s]/i', '', $field);
+	}
 
 	/** @var PSHD */
 	protected $_pshd = null;
@@ -26,6 +27,7 @@ class Select
 	protected $_where = array();
 	protected $_filter = array();
 	protected $_groupBy = array();
+	protected $_having = array();
 	protected $_orderBy = array();
 	protected $_limit = null;
 	protected $_offset = null;
@@ -55,6 +57,7 @@ class Select
 		$qJoin = "";
 		$qWhere = "";
 		$qGroupBy = "";
+		$qHaving = '';
 		$qOrderBy = "";
 		$qLimitOffset = "";
 		if (count($this->_sub) > 0) $this->select($this->_from . "." . $this->_pshd->idField);
@@ -144,6 +147,16 @@ class Select
 			}
 			$qGroupBy = substr($qGroupBy, 0, -1);
 		}
+
+		if (count($this->_having) > 0) {
+			$qHaving = 'HAVING ';
+			foreach ($this->_having as $i=>&$w) {
+				foreach($w->getParameters() as &$p) $this->addParameter($p);
+				$clause = $w->getClause();
+				if($i>0 && !preg_match("/\\s*(AND|OR|NOR|XOR)\\s/i",$clause)) $clause = ' AND '.$clause;
+				$qHaving.= $clause;
+			}
+		}
 		if (count($this->_orderBy) > 0) {
 			$qOrderBy = "ORDER BY";
 			foreach ($this->_orderBy as $field => $order) {
@@ -155,7 +168,7 @@ class Select
 		if (is_numeric($this->_limit) || is_numeric($this->_offset)) {
 			$qLimitOffset = "LIMIT ".max(1, $this->_limit)." OFFSET ".max(0, $this->_offset)."";
 		}
-		$this->_queryString = $this->_pshd->placeHolders(trim("SELECT $qSelect FROM $qFrom $qJoin $qWhere $qGroupBy $qOrderBy $qLimitOffset"));
+		$this->_queryString = $this->_pshd->placeHolders(trim("SELECT $qSelect FROM $qFrom $qJoin $qWhere $qGroupBy $qHaving $qOrderBy $qLimitOffset"));
 	}
 
 	/**
@@ -448,9 +461,11 @@ class Select
 			foreach ($this->_filterWhere as $k => $v) if (isset($v['filter'])) {
 				$this->_filterWhere[$k] = null;
 				unset($this->_filterWhere[$k]);
+				$this->_filterEnabled[$k] = false;
 			}
 		} else {
 			if ($where === null) {
+				$this->_filterEnabled[$name] = false;
 				$this->_filterWhere[$name] = null;
 				unset($this->_filterWhere[$name]);
 			} elseif($where===false) {
@@ -458,6 +473,7 @@ class Select
 			} elseif($where===true) {
 				$this->_filterEnabled[$name] = true;
 			} else {
+				$this->_filterEnabled[$name] = true;
 				$this->_filterWhere[$name] = array('filter' => $this->_pshd->where($where, $parameters));
 			}
 		}
@@ -469,12 +485,26 @@ class Select
 	 * @param string $field
 	 * @return $this
 	 */
-	public function groupBy($field)
+	public function group($field)
 	{
 		if ($field === null) {
 			$this->_groupBy = array();
 		} else {
-			$this->_groupBy[$field] = 1;
+			if(is_array($field)) foreach($field as $f) $this->group($f);
+			else {
+				$field = self::sanitizeField($field);
+				$this->_groupBy[$field] = 1;
+			}
+		}
+		return $this;
+	}
+
+
+	public function having($where, $parameters = array()) {
+		if ($where === null) {
+			$this->_having = array();
+		} else {
+			$this->_having[] = $this->_pshd->where($where, $parameters);
 		}
 		return $this;
 	}
@@ -485,7 +515,7 @@ class Select
 	 * @param string $order
 	 * @return $this
 	 */
-	public function orderBy($field, $order = "ASC")
+	public function order($field, $order = "ASC")
 	{
 		if ($field === null) {
 			$this->_orderBy = array();
@@ -494,22 +524,24 @@ class Select
 			$e = explode(" ", $field);
 			if (count($e) > 1) {
 				$field = $e[0];
-				$e[1] = strtoupper($e[1]);
-				switch ($e[1]) {
-					default:
-					case 1:
-					case 'ASC':
-					case '+':
-					case '<':
-						$order = "ASC";
-						break;
-					case 0:
-					case 'DESC':
-					case '-':
-					case '>':
-						$order = "DESC";
-						break;
-				}
+				$field = self::sanitizeField($field);
+				$order = strtoupper($e[1]);
+			}
+			switch ($order) {
+				default:
+				case 1:
+				case 'ASC':
+				case '+':
+				case '<':
+					$order = "ASC";
+					break;
+				case 0:
+				case -1:
+				case 'DESC':
+				case '-':
+				case '>':
+					$order = "DESC";
+					break;
 			}
 			$this->_orderBy[$field] = $order;
 		}
@@ -705,6 +737,7 @@ class Select
 	{
 		$c = clone $this;
 		$c->select(null)->select('COUNT(*)');
+		$c->order(null);
 		if ($removeLimitOffset) $c->limit(null, null);
 		return $c->result(true)->cell();
 	}

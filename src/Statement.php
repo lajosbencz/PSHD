@@ -64,12 +64,12 @@ class Statement {
 		return $this->_pdoStatement->errorInfo();
 	}
 
-	public function execute($input_parameters=null) {
+	public function execute($input_parameters=array()) {
 		try {
 			$r = $this->_pdoStatement->execute($input_parameters);;
 			return $r;
 		} catch(\Exception $e) {
-			$this->_pshd->exception($e);
+			$this->_pshd->exception($this->_pdoStatement->queryString,$input_parameters,$e);
 		}
 		return false;
 	}
