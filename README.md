@@ -111,7 +111,19 @@ $db->setExceptionHandler(false);
 $literal = $db->literal("expiry<NOW() OR status=?",array(2));
 
 // creates Where wrapper, parameters can be set
-$where = $db->where(4); // translates to 'WHERE <options.idField>=4'
+$where = $db->where(4);
+// WHERE <options.idField>=4
+
+// operators with Where wrapper
+$w = $db->where()
+	->a('col = ?',['foo'])
+	->o('(col = ?)',['bar'])
+	->n('col = ?',['bax'])
+	->x('col = ?',['baz']);
+$select->where($where);
+...
+// WHERE ( col = ?  OR (col = ?)  NOT col = ?  XOR col = ? )
+
 
 // execute command without parameters
 $bool = $db->execute("TRUNCATE TABLE {P}test");

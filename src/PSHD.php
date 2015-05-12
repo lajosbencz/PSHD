@@ -252,11 +252,11 @@ class PSHD {
 
 	/**
 	 * Creates Select independent Where clause
-	 * @param Where|array|string|int $expression
+	 * @param Where|array|string|int $expression (optional)
 	 * @param array $parameters (optional)
 	 * @return Where
 	 */
-	public function where($expression, $parameters=array()) {
+	public function where($expression=null, $parameters=array()) {
 		return new Where($this, $expression,$parameters);
 	}
 

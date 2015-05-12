@@ -89,6 +89,43 @@ class Where {
 		return $this->_clause;
 	}
 
+
+	/**
+	 * Adds clause fragment
+	 * @param string $type
+	 * @param string $clause
+	 * @param array $parameters (optional)
+	 * @return $this
+	 */
+	public function addClause($type, $clause, $parameters=[]) {
+		$r = '';
+		if(strlen(trim($this->_clause))>0) {
+			switch (strtolower(trim($type))) {
+				default:
+				case 'and':
+				case 'a':
+					$r = 'AND';
+					break;
+				case 'or':
+				case 'o':
+					$r = 'OR';
+					break;
+				case 'not':
+				case 'n':
+					$r = 'NOT';
+					break;
+				case 'xor':
+				case 'x':
+					$r = 'XOR';
+					break;
+			}
+		}
+		//$clause.= preg_replace("/^(\\s*\\()?/i", '$1 '.$r.' ', $clause);
+		$this->_clause.= ' '.trim($r.' '.$clause).' ';
+		$this->_parameters = array_merge($this->_parameters, $parameters);
+		return $this;
+	}
+
 	/**
 	 * Set PDO parameters
 	 * @param array $prms (optional)
@@ -118,6 +155,46 @@ class Where {
 	public function getParameters()
 	{
 		return $this->_parameters;
+	}
+
+	/**
+	 * Adds clause with AND
+	 * @param string|array $clause
+	 * @param array $parameters (optional)
+	 * @return $this
+	 */
+	public function a($clause, $parameters = array()) {
+		return $this->addClause(__FUNCTION__, $clause, $parameters);
+	}
+
+	/**
+	 * Adds clause with OR
+	 * @param string|array $clause
+	 * @param array $parameters (optional)
+	 * @return $this
+	 */
+	public function o($clause, $parameters = array()) {
+		return $this->addClause(__FUNCTION__, $clause, $parameters);
+	}
+
+	/**
+	 * Adds clause with NOT
+	 * @param string|array $clause
+	 * @param array $parameters (optional)
+	 * @return $this
+	 */
+	public function n($clause, $parameters = array()) {
+		return $this->addClause(__FUNCTION__, $clause, $parameters);
+	}
+
+	/**
+	 * Adds clause with XOR
+	 * @param string|array $clause
+	 * @param array $parameters (optional)
+	 * @return $this
+	 */
+	public function x($clause, $parameters = array()) {
+		return $this->addClause(__FUNCTION__, $clause, $parameters);
 	}
 
 	/**
