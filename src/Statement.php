@@ -126,9 +126,9 @@ class Statement
 		return $this->_pdoStatement->fetchObject($class_name, $ctor_args);
 	}
 
-	public function fetchAll($fetch_style = null, $fetch_argument = null, $ctor_args = array())
+	public function fetchAll($fetch_style = null)
 	{
-		return $this->_pdoStatement->fetchAll($fetch_style, $fetch_argument, $ctor_args);
+		return $this->_pdoStatement->fetchAll($fetch_style);
 	}
 
 }
